@@ -1,0 +1,68 @@
+# Discussion
+
+## 1. What the Privacy-Utility Curve Tells Us About Deployability
+
+The central tension in NGSP is that tighter DP noise (smaller ε) provides stronger formal guarantees but degrades the proxy text and therefore the downstream answer quality. The calibration experiment (`experiments/calibrate_epsilon.py`) plots this tradeoff explicitly.
+
+**If the curve shows a viable operating point exists (H₁ and H₂ both satisfied at some ε):** ε = 3.0 is likely near the Pareto frontier for this corpus and model size. Below ε ≈ 1.0, σ > 3.3, which adds noise large enough relative to the hidden-state magnitude that the proxy decoder produces semantically incoherent text. Above ε ≈ 5.0, the noise is small enough that the inversion attacker may recover signal from the residual structure.
+
+**If no viable operating point exists:** This is a meaningful negative result. It would suggest that Gemma 4 at 2B parameters does not have sufficient representational capacity to disentangle task intent from entity-specific content at the hidden-state level — a finding that motivates either a larger local model or a different proxy mechanism (e.g., semantic hashing rather than embedding-space DP).
+
+**Deployment posture.** Even at a viable operating point, the system has hard prerequisites for real deployment:
+- The Gemma model weights must stay on-premises; cloud loading defeats the purpose.
+- The `entity_map` must be ephemeral; a persistent map is a de-anonymization database.
+- Session budget enforcement must be tamper-resistant; a compromised session budget counter nullifies the DP guarantees.
+- The audit log must be monitored for anomalous canary appearances; a single canary leak is a deployment failure regardless of aggregate metrics.
+
+## 2. Where the Composed System Breaks
+
+### Query synthesis path limitations
+
+The `query_synthesizer.py` relies on Gemma's ability to extract task intent without mentioning sensitive entities. For free-form rewriting tasks ("make this SAE narrative clearer"), the task intent *is* the content — there is no separable abstract question to synthesize. The router should classify these as `dp_tolerant` or `local_only`, but routing errors will occasionally send them through synthesis, producing a synthesized query that either lacks the context needed for a useful answer or inadvertently preserves entity-identifying structure.
+
+### DP path proxy decoder quality
+
+The v1 proxy decoder (`proxy_decoder.py`) uses the noisy hidden-state vector only as a soft hint to a Gemma paraphrase call, not as a hard prefix-tuning signal. This means the DP noise is partially undone by Gemma's paraphrase, which reconstructs clean prose from the noisy semantic hint. True prefix-tuning or a dedicated decoder network trained to map noisy embeddings to text would give stronger guarantees. The current decoder provides approximate DP properties rather than strict ones.
+
+### Inversion attacker upper bound
+
+The DistilBERT inversion attacker in Attack 3 is trained on the same synthetic distribution as the evaluation set. A real adversary would likely train on a larger, more varied corpus of (proxy, original) pairs accumulated over many sessions. The F1 reported here is a lower bound on what a persistent adversary could achieve; it should be treated as "can a naive single-model attacker recover spans?" rather than "can any attacker?"
+
+### Membership inference scope
+
+Attack 4 evaluates only the top-3 most-frequent compound codes. Rare entities (appearing in only a few documents) are harder to evaluate but also higher-value targets. An adversary specifically interested in a novel compound code present in only 1–2 documents cannot be evaluated with the current approach, which requires positive/negative class balance.
+
+## 3. Honest Deployment Posture
+
+NGSP in its current form is a **research prototype** appropriate for:
+- Evaluating the feasibility of the approach and calibrating the privacy-utility tradeoff
+- Benchmarking against simpler baselines (Safe Harbor only, no-privacy direct send)
+- Identifying the regime where formal DP guarantees become practically useful
+
+It is **not appropriate** for:
+- Production deployment with real patient data without independent security review
+- Regulatory compliance claims (BAA, HIPAA Safe Harbor certification, etc.)
+- Therapeutic-area-specific document types not represented in the synthetic corpus
+- Scenarios where the adversary has side-channel access to model artifacts
+
+## 4. What Is Out of Scope
+
+**Rare-disease trials.** The synthetic corpus uses ~15 common indication categories. Ultra-rare diseases may have only a handful of trials globally; quasi-identifier recombination risk is qualitatively higher, and the Safe Harbor threshold does not capture it. NGSP's effectiveness in that regime is unknown.
+
+**Genomics and multi-omics.** The 18 HIPAA identifiers do not cover genomic quasi-identifiers. Re-identification from genomic proxies requires a different threat model and is not evaluated here.
+
+**Real-world non-adversarial testing.** Clinical trial staff interact with LLM chat interfaces opportunistically, not under controlled adversarial conditions. Real-world privacy properties (how often the Safe Harbor stripper misfires, how often Gemma routes incorrectly, latency impact on user adoption) require a pilot study with actual users.
+
+**Adversarial fine-tuning of the cloud model.** If an attacker controls the cloud LLM (or can observe its training), they could potentially fine-tune it to elicit entity-specific responses from proxy inputs. This threat is out of scope for this evaluation.
+
+## 5. Future Work
+
+1. **Stronger proxy decoder.** Train a dedicated text decoder on (noisy_hidden_state → original_text) pairs. This would give proper DP guarantees for the proxy text rather than approximate ones.
+
+2. **Larger local model.** Repeat the evaluation with Gemma 4 at larger parameter counts (9B, 27B) to characterize whether routing quality and proxy decoder fidelity improve enough to push the viable operating point to tighter ε values.
+
+3. **Adaptive adversary evaluation.** Train the inversion attacker with knowledge of the NGSP routing decisions (as if the adversary can observe the proxy generation process). This tests the security of the mechanism under partial disclosure.
+
+4. **Operational pilot.** Run NGSP as a Chrome extension that intercepts clipboard paste events into web-based LLM chat interfaces. Measure latency impact, user bypass rate, and false-positive Safe Harbor stripping rate on real (non-PHI) clinical writing tasks.
+
+5. **Federated DP accounting.** Extend the session budget to track across users (not just sessions), enabling a site-level or organization-level privacy budget that degrades gracefully as aggregate exposure accumulates.
