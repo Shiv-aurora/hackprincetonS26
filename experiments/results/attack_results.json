@@ -1,0 +1,789 @@
+{
+  "n_docs": 30,
+  "n_sae": 15,
+  "n_protocol": 15,
+  "seed": 42,
+  "route_counts": {
+    "abstract_extractable": 10,
+    "dp_tolerant": 20,
+    "local_only": 0
+  },
+  "skipped_local_only": 0,
+  "failures": 0,
+  "summary_by_category": {
+    "site_id": {
+      "n_spans": 15,
+      "verbatim_hits": 13,
+      "verbatim_leak_rate": 0.8667,
+      "mean_jaccard": 0.0156
+    },
+    "compound_code": {
+      "n_spans": 49,
+      "verbatim_hits": 31,
+      "verbatim_leak_rate": 0.6327,
+      "mean_jaccard": 0.0181
+    },
+    "efficacy_value": {
+      "n_spans": 16,
+      "verbatim_hits": 8,
+      "verbatim_leak_rate": 0.5,
+      "mean_jaccard": 0.0123
+    },
+    "amendment_rationale": {
+      "n_spans": 8,
+      "verbatim_hits": 4,
+      "verbatim_leak_rate": 0.5,
+      "mean_jaccard": 0.0482
+    }
+  },
+  "summary_by_category_abstract_extractable": {
+    "compound_code": {
+      "n_spans": 10,
+      "verbatim_hits": 2,
+      "verbatim_leak_rate": 0.2,
+      "mean_jaccard": 0.0123
+    },
+    "efficacy_value": {
+      "n_spans": 4,
+      "verbatim_hits": 0,
+      "verbatim_leak_rate": 0.0,
+      "mean_jaccard": 0.0
+    }
+  },
+  "summary_by_category_dp_tolerant": {
+    "site_id": {
+      "n_spans": 15,
+      "verbatim_hits": 13,
+      "verbatim_leak_rate": 0.8667,
+      "mean_jaccard": 0.0156
+    },
+    "compound_code": {
+      "n_spans": 39,
+      "verbatim_hits": 29,
+      "verbatim_leak_rate": 0.7436,
+      "mean_jaccard": 0.0196
+    },
+    "efficacy_value": {
+      "n_spans": 12,
+      "verbatim_hits": 8,
+      "verbatim_leak_rate": 0.6667,
+      "mean_jaccard": 0.0164
+    },
+    "amendment_rationale": {
+      "n_spans": 8,
+      "verbatim_hits": 4,
+      "verbatim_leak_rate": 0.5,
+      "mean_jaccard": 0.0482
+    }
+  },
+  "per_doc": [
+    {
+      "doc_id": "SAE-0042-0000-bdd640fb",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0124
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0248
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0124
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0186
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 66,
+          "verbatim_match": true,
+          "jaccard": 0.0497
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0001-ddd1dfb2",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0137
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0274
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0137
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 93,
+          "verbatim_match": true,
+          "jaccard": 0.0753
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0002-7e570ddf",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0146
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0292
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0146
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0219
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0003-3d4cbf37",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.0247
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0366
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0247
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0004-ceb81f9d",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0142
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0284
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0142
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0284
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0005-b7e99aca",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.018
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.036
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.018
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0006-43e42caf",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0185
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.037
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0185
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0007-f1eedba3",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0146
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0292
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0146
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 76,
+          "verbatim_match": true,
+          "jaccard": 0.0803
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0008-4774bc58",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0156
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0312
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0156
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0009-ad64b56c",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0137
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0274
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0137
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0205
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0010-e2add909",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0149
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0299
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0149
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0299
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0011-54b4a482",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0131
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0261
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0131
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0261
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 89,
+          "verbatim_match": true,
+          "jaccard": 0.0915
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0012-610e6a64",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0156
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0312
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0156
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0013-0a8381be",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.013
+        },
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.026
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.013
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.026
+        }
+      ]
+    },
+    {
+      "doc_id": "SAE-0042-0014-7d137018",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "site_id",
+          "char_len": 9,
+          "verbatim_match": true,
+          "jaccard": 0.0171
+        },
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": true,
+          "jaccard": 0.0342
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0171
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 14,
+          "verbatim_match": true,
+          "jaccard": 0.0256
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0000-c33f4584",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0001-5f53f26c",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0002-832ea288",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0003-944ae60b",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0769
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 66,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0004-b37ee754",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0005-5e38a9ff",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0006-b715e9a1",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 15,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 9,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0007-df9e9526",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0625
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0008-fa02f585",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 95,
+          "verbatim_match": false,
+          "jaccard": 0.0385
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0009-b7bd86bf",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0010-0d457c22",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0011-c6cefb92",
+      "route": "abstract_extractable",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": true,
+          "jaccard": 0.0606
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0012-061410f3",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 95,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0013-1dcc06ad",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        }
+      ]
+    },
+    {
+      "doc_id": "PROT-0043-0014-d65371ec",
+      "route": "dp_tolerant",
+      "spans_tested": [
+        {
+          "category": "compound_code",
+          "char_len": 14,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "compound_code",
+          "char_len": 8,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "efficacy_value",
+          "char_len": 15,
+          "verbatim_match": false,
+          "jaccard": 0.0
+        },
+        {
+          "category": "amendment_rationale",
+          "char_len": 66,
+          "verbatim_match": false,
+          "jaccard": 0.05
+        }
+      ]
+    }
+  ]
+}
