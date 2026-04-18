@@ -29,6 +29,7 @@ models/
 *.bin
 *.pt
 *.pth
+.claude/
 
 # raw experiment artifacts — reproducible from code, never committed raw
 experiments/results/raw/
@@ -50,3 +51,5 @@ frontend/dist/
 frontend/.vite/
 frontend/.env*
 !frontend/.env.example
+.context-compass/
+.mcp.json

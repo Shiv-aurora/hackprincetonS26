@@ -1,20 +1,39 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# NGSP Frontend
 
-# Run and deploy your AI Studio app
+Vite 6 + React 19 + TypeScript + Tailwind v4. VS Code-themed UI for the Neural-Guided Semantic Proxy demo.
 
-This contains everything you need to run your app locally.
+## Prerequisites
 
-View your app in AI Studio: https://ai.studio/apps/1f246709-e72a-4d59-828a-6569abad2a6a
+- Node.js 20+
+- The NGSP backend running on port 8000 (see `../backend/README.md`)
 
-## Run Locally
+## Run
 
-**Prerequisites:**  Node.js
+```bash
+cd frontend
+cp .env.example .env          # optional — defaults work for local dev
+npm install
+npm run dev                   # http://localhost:5173
+```
 
+The app pre-loads the demo SAE narrative on startup. If the backend is unreachable it shows an error banner and continues in a degraded state.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Environment variables
+
+| Variable       | Default                  | Description                        |
+|----------------|--------------------------|------------------------------------|
+| `VITE_API_URL` | `http://localhost:8000`  | Backend base URL                   |
+
+## Tabs
+
+| Tab      | Icon        | Function                                      |
+|----------|-------------|-----------------------------------------------|
+| RECORDS  | Stethoscope | Document view — SAE narrative with highlights |
+| VITALS   | Activity    | Privacy session stats + DP budget             |
+| PHARMACY | Pill        | Settings — backend URL, model selector        |
+
+## Type check
+
+```bash
+npm run lint    # tsc --noEmit
+```
