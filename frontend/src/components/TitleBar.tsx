@@ -1,4 +1,4 @@
-import { Layout, Split, MoreHorizontal, X, Minus, Square, ShieldCheck } from "lucide-react";
+import { Layout, MoreHorizontal, X, Minus, Square, ShieldCheck } from "lucide-react";
 import type { EntityItem, SessionStats } from "../lib/api";
 
 interface TitleBarProps {
@@ -13,73 +13,71 @@ export default function TitleBar({ entities = [], auditStats }: TitleBarProps) {
   const totalEntities = entities.length;
 
   return (
-    <header className="h-8 bg-[#1f1f1f] flex items-center justify-between px-3 z-50 shrink-0 border-b border-vscode-border select-none">
+    <header className="h-8 bg-[#111111] flex items-center justify-between px-3 z-50 shrink-0 border-b border-vscode-border select-none">
+      {/* Left: app icon + menu */}
       <div className="flex items-center gap-4 h-full">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-primary-container rounded-sm flex items-center justify-center p-0.5">
-            <Layout size={10} className="text-white" />
+          <div className="w-4 h-4 bg-primary-container rounded-[4px] flex items-center justify-center">
+            <Layout size={9} className="text-white" />
           </div>
-          <div className="flex items-center gap-2 text-[12px] text-[#969696]">
-            <span>File</span>
-            <span>Edit</span>
-            <span>Selection</span>
-            <span>View</span>
-            <span>Go</span>
+          <div className="flex items-center gap-3 text-[11.5px] text-[#555]">
+            {["File", "Edit", "View", "Go"].map((item) => (
+              <span key={item} className="hover:text-[#aaa] cursor-pointer transition-colors duration-100">
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
+      {/* Center: window title */}
       <div className="flex-1 flex justify-center h-full items-center">
-        <div className="bg-[#2c2c2c] px-4 py-0.5 rounded-md border border-[#3e3e3e] text-[11px] text-[#cccccc] flex items-center gap-2 hover:bg-[#323232] cursor-default transition-colors">
-          <span>Sovereign_OS</span>
-          <span className="text-zinc-600">—</span>
+        <div className="glass px-3 py-0.5 rounded-md text-[11px] text-[#888] flex items-center gap-2 hover:text-[#bbb] cursor-default transition-colors duration-150">
+          <span className="text-[#666]">Sovereign_OS</span>
+          <span className="text-[#2e2e2e]">—</span>
           <span>SAE_Narrative_Draft_001.txt</span>
         </div>
       </div>
 
+      {/* Right: privacy pill + window controls */}
       <div className="flex items-center gap-3 h-full">
-        {/* Privacy pill: entity counts + session stats */}
         {totalEntities > 0 && (
           <div
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-vscode-border bg-[#252526] text-[10px] font-mono"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md glass text-[9.5px] font-mono tabular"
             title={
               auditStats
                 ? `${auditStats.total_requests} requests · ${auditStats.proxied} proxied`
                 : "Entity counts for loaded document"
             }
           >
-            <ShieldCheck size={10} className="text-tertiary" />
-            <span className="text-phi">{phiCount} PHI</span>
-            <span className="text-[#454545]">·</span>
-            <span className="text-ip">{ipCount} IP</span>
-            <span className="text-[#454545]">·</span>
-            <span className="text-mnpi">{mnpiCount} MNPI</span>
+            <ShieldCheck size={9} className="text-tertiary/70" />
+            <span className="text-phi">{phiCount}</span>
+            <span className="text-[#2e2e2e]">·</span>
+            <span className="text-ip">{ipCount}</span>
+            <span className="text-[#2e2e2e]">·</span>
+            <span className="text-mnpi">{mnpiCount}</span>
             {auditStats && auditStats.total_requests > 0 && (
               <>
-                <span className="text-[#454545]">·</span>
-                <span className="text-[#858585]">{auditStats.total_requests} req</span>
+                <span className="text-[#2e2e2e]">·</span>
+                <span className="text-[#555]">{auditStats.total_requests}</span>
               </>
             )}
           </div>
         )}
 
-        <div className="flex items-center gap-1">
-          <button className="text-[#cccccc] hover:bg-white/10 p-1.5 rounded transition-colors">
-            <Split size={14} />
-          </button>
-          <button className="text-[#cccccc] hover:bg-white/10 p-1.5 rounded transition-colors">
-            <MoreHorizontal size={14} />
-          </button>
-        </div>
+        <button className="text-[#666] hover:text-[#ccc] p-1.5 rounded transition-colors duration-100">
+          <MoreHorizontal size={13} />
+        </button>
+
         <div className="flex items-center">
-          <button className="text-[#cccccc] hover:bg-white/10 px-3 h-full transition-colors">
-            <Minus size={14} />
+          <button className="text-[#555] hover:bg-white/8 px-3 h-full transition-colors duration-100">
+            <Minus size={13} />
           </button>
-          <button className="text-[#cccccc] hover:bg-white/10 px-3 h-full transition-colors">
-            <Square size={12} />
+          <button className="text-[#555] hover:bg-white/8 px-3 h-full transition-colors duration-100">
+            <Square size={11} />
           </button>
-          <button className="text-[#cccccc] hover:bg-[#e81123] px-3 h-full transition-colors">
-            <X size={14} />
+          <button className="text-[#555] hover:bg-[#e81123] hover:text-white px-3 h-full transition-colors duration-100">
+            <X size={13} />
           </button>
         </div>
       </div>

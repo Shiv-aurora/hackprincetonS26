@@ -1,5 +1,4 @@
-// Canonical demo SAE narrative used as the pre-loaded document on first page render.
-// Synthetic — no real PHI. Structurally realistic across all three sensitivity tiers.
+// Canonical demo SAE narrative — synthetic, no real PHI.
 export const DEMO_DOCUMENT =
   "Subject 04-0023, a 68-year-old female at Site 104 (Princeton Regional Oncology), " +
   "was enrolled in Study BMS-986253-301 on 14-MAR-2024. " +
@@ -10,3 +9,59 @@ export const DEMO_DOCUMENT =
   "which was discussed in the DSMB meeting on 22-APR-2024.";
 
 export const DEMO_PROMPT = "Rewrite this in ICH E2B format.";
+
+export type ModelId = "claude-opus-4" | "gpt-5" | "gemini-2";
+
+export const MODEL_LABELS: Record<ModelId, string> = {
+  "claude-opus-4": "Claude Opus 4",
+  "gpt-5": "GPT-5",
+  "gemini-2": "Gemini 2",
+};
+
+export interface DemoFile {
+  content: string;
+  language: string;
+  prompt: string;
+}
+
+export const DEMO_FILES: Record<string, DemoFile> = {
+  "SAE_Narrative_Draft_001.txt": {
+    content: DEMO_DOCUMENT,
+    language: "plaintext",
+    prompt: "Rewrite this in ICH E2B format.",
+  },
+  "patient_records.csv": {
+    language: "csv",
+    content: `subject_id,age,sex,site_id,enrollment_date,compound,dose,ae_grade
+SUBJ-001,68,F,Site 104,14-MAR-2024,BMS-986253,50mg,4
+SUBJ-002,54,M,Site 107,22-APR-2024,BMS-986253,25mg,2
+SUBJ-003,71,F,Site 104,01-MAY-2024,BMS-986253,25mg,1
+SUBJ-004,62,M,Site 110,03-JUN-2024,BMS-986253,25mg,3`,
+    prompt: "Summarize patient demographics and adverse event incidence by site.",
+  },
+  "extraction_rules.json": {
+    language: "json",
+    content: `{
+  "version": "2.1",
+  "description": "NGSP entity extraction rules for clinical trial documents",
+  "phi_patterns": [
+    "subject_id", "date_of_birth",
+    "site_name", "age", "geographic_subdivision"
+  ],
+  "ip_patterns": [
+    "compound_code", "dose_level",
+    "ae_grade", "study_day", "cycle_timing"
+  ],
+  "mnpi_patterns": [
+    "efficacy_value", "amendment_detail",
+    "dsmb_result", "interim_analysis"
+  ],
+  "routing_thresholds": {
+    "dp_tolerant": ["mnpi"],
+    "abstract_extractable": ["phi", "ip"],
+    "local_only": []
+  }
+}`,
+    prompt: "Explain what types of sensitive information this extraction ruleset covers.",
+  },
+};
