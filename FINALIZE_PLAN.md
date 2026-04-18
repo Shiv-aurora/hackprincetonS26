@@ -123,6 +123,13 @@ under the "live Vite/React scaffold" reality:
 
 ## Step 2 — Backend scaffold
 
+**Status:** DONE — 2026-04-18. `backend/main.py` with 6 endpoints (health + 5
+data endpoints), `backend/schemas.py` with all Pydantic models, 27 backend tests
+all passing. Detection uses regex Safe Harbor + 15 clinical-trial patterns
+(no Gemma required for demo mode). Mock path builds a real ICH E2B response using
+actual entity_map placeholders, then rehydrates fully. `pytest -q` → 57 passed, 3
+skipped (baseline unchanged). `pytest backend/tests -q` → 27 passed.
+
 **Goal:** FastAPI server wrapping the NGSP pipeline with 5 REST endpoints.
 
 **Endpoints:**
@@ -179,6 +186,12 @@ under the "live Vite/React scaffold" reality:
 ---
 
 ## Step 3 — Frontend scaffold from Stitch mockup
+
+**Status:** DONE — 2026-04-18. `frontend/src/lib/api.ts` typed client, `demoDocument.ts`
+constant, `App.tsx` owns data-loading + hover state, `Workspace.tsx` dynamically renders
+entity highlights (PHI/IP/MNPI colors) and proxy tokens with synchronized hover,
+`AssistantPanel.tsx` has full chat with routing badge + entity count, `TitleBar.tsx`
+shows privacy pill. `tsc --noEmit` → 0 errors. Both test suites still green.
 
 **Goal:** Next.js app that visually matches the Stitch mockup, wired to the backend, runs on localhost:3000.
 

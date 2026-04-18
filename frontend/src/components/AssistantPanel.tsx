@@ -1,92 +1,238 @@
-import { Bot, User, MoreHorizontal, Copy, Plus, Route, ArrowUp, X, Sparkles, ChevronDown } from 'lucide-react';
+import {
+  Bot,
+  User,
+  MoreHorizontal,
+  Copy,
+  ArrowUp,
+  X,
+  Sparkles,
+  ChevronDown,
+  AlertTriangle,
+} from "lucide-react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import type { CompleteResponse } from "../lib/api";
+import { completeRequest } from "../lib/api";
+import { DEMO_DOCUMENT, DEMO_PROMPT } from "../lib/demoDocument";
 
-export default function AssistantPanel() {
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  routing?: { path: string; rationale: string };
+  entitiesProxied?: number;
+}
+
+interface AssistantPanelProps {
+  onRequestComplete: () => void;
+}
+
+export default function AssistantPanel({ onRequestComplete }: AssistantPanelProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState(DEMO_PROMPT);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function handleSend() {
+    const prompt = inputValue.trim();
+    if (!prompt || isLoading) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: prompt,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result: CompleteResponse = await completeRequest(
+        DEMO_DOCUMENT,
+        prompt,
+        "claude-opus-4"
+      );
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: result.response_rehydrated,
+        routing: result.routing,
+        entitiesProxied: result.entities_proxied,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+      onRequestComplete();
+    } catch {
+      setError("Backend not reachable. Start with: uvicorn backend.main:app --port 8000");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  const routeLabel: Record<string, string> = {
+    abstract_extractable: "Abstract",
+    dp_tolerant: "DP",
+    local_only: "Local",
+  };
+
+  const routeColor: Record<string, string> = {
+    abstract_extractable: "text-tertiary border-tertiary/30 bg-tertiary/10",
+    dp_tolerant: "text-mnpi border-mnpi/30 bg-mnpi/10",
+    local_only: "text-ip border-ip/30 bg-ip/10",
+  };
+
   return (
     <aside className="w-80 flex flex-col bg-surface-container-lowest border-l border-vscode-border shrink-0">
       {/* Header */}
       <div className="h-9 px-4 flex items-center justify-between bg-surface-container-low border-b border-vscode-border shrink-0">
-        <span className="text-[11px] font-medium text-[#bbbbbb] uppercase tracking-wider">Assistant</span>
+        <span className="text-[11px] font-medium text-[#bbbbbb] uppercase tracking-wider">
+          Assistant
+        </span>
         <div className="flex items-center gap-1">
-           <button className="text-[#858585] hover:text-[#cccccc] p-1"><MoreHorizontal size={14} /></button>
-           <button className="text-[#858585] hover:text-[#cccccc] p-1"><X size={14} /></button>
+          <button className="text-[#858585] hover:text-[#cccccc] p-1">
+            <MoreHorizontal size={14} />
+          </button>
+          <button
+            className="text-[#858585] hover:text-[#cccccc] p-1"
+            onClick={() => setMessages([])}
+            title="Clear conversation"
+          >
+            <X size={14} />
+          </button>
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
-        {/* User Message */}
-        <div className="flex flex-col gap-1.5 group">
-          <div className="flex items-center gap-2">
-            <User size={12} className="text-[#858585]" />
-            <span className="text-[11px] font-bold text-[#cccccc]">USER_98A</span>
+        {messages.length === 0 && !isLoading && (
+          <div className="text-[11px] text-[#858585] space-y-2">
+            <p className="text-[#969696] font-mono">Try:</p>
+            <p className="font-mono text-[#6a9955]">&gt; Rewrite this in ICH E2B format.</p>
+            <p className="font-mono text-[#6a9955]">&gt; Summarize the adverse event timeline.</p>
+            <p className="font-mono text-[#6a9955]">&gt; List all sensitive identifiers found.</p>
           </div>
-          <div className="text-[12px] text-[#cccccc] leading-relaxed bg-[#252526] p-3 rounded border border-vscode-border">
-            Extract all entities related to the active compound and summarize the adverse event timeline.
-          </div>
-        </div>
+        )}
 
-        {/* Assistant Message */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Bot size={12} className="text-tertiary" />
-            <span className="text-[11px] font-bold text-tertiary uppercase">Claude_Clinical_4.7</span>
+        {messages.map((msg) => (
+          <div key={msg.id} className="flex flex-col gap-1.5 group">
+            {msg.role === "user" ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <User size={12} className="text-[#858585]" />
+                  <span className="text-[11px] font-bold text-[#cccccc]">USER</span>
+                </div>
+                <div className="text-[12px] text-[#cccccc] leading-relaxed bg-[#252526] p-3 rounded border border-vscode-border">
+                  {msg.content}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Bot size={12} className="text-tertiary" />
+                  <span className="text-[11px] font-bold text-tertiary uppercase">
+                    Claude_Clinical
+                  </span>
+                  {msg.routing && (
+                    <span
+                      className={`ml-auto text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border font-mono ${
+                        routeColor[msg.routing.path] ?? "text-[#858585] border-vscode-border"
+                      }`}
+                      title={msg.routing.rationale}
+                    >
+                      {routeLabel[msg.routing.path] ?? msg.routing.path}
+                      {msg.entitiesProxied != null && ` · ${msg.entitiesProxied} proxied`}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[12px] text-[#cccccc] font-mono bg-[#1e1e1e] p-3 rounded border border-vscode-border whitespace-pre-wrap leading-relaxed">
+                  {msg.content}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(msg.content)}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high hover:bg-[#37373d] border border-vscode-border rounded text-[11px] text-[#858585] hover:text-[#cccccc] transition-colors"
+                  >
+                    <Copy size={12} /> Copy
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          <div className="text-[12px] text-[#cccccc] font-mono bg-[#1e1e1e] p-3 rounded border border-vscode-border">
-            <p className="text-[#6a9955] mb-2 font-bold tracking-tighter cursor-default">&gt; EXTRACTION_PROTOCOL_OK</p>
-            
-            <div className="space-y-1 mb-4 text-[11px]">
-              <p><span className="text-[#858585]">ENTITY:</span> &lt;COMPOUND_X&gt;</p>
-              <p><span className="text-[#858585]">MAP:</span> BMS-986253</p>
-            </div>
+        ))}
 
-            <div className="border-t border-vscode-border pt-3">
-              <p className="text-[#969696] mb-2 uppercase text-[10px] font-bold">TIMELINE:</p>
-              <div className="space-y-3 pl-3 border-l border-vscode-border">
-                <p><span className="text-[#ce9178]">T-0:</span> Subject on 10mg/kg bi-weekly.</p>
-                <p><span className="text-[#ce9178]">T+1 (Oct 15):</span> ED presentation, severe pain.</p>
-                <p><span className="text-[#ce9178]">T+1 (Labs):</span> ALT 450 U/L, AST 380 U/L.</p>
-                <p><span className="text-[#ce9178]">T+2:</span> Unblinding initiated.</p>
-              </div>
+        {isLoading && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <Bot size={12} className="text-tertiary" />
+              <span className="text-[11px] font-bold text-tertiary uppercase">Claude_Clinical</span>
+            </div>
+            <div className="text-[12px] text-[#969696] font-mono bg-[#1e1e1e] p-3 rounded border border-vscode-border">
+              <span className="animate-pulse">Processing through privacy layer…</span>
             </div>
           </div>
-          
-          <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high hover:bg-[#37373d] border border-vscode-border rounded text-[11px] text-[#858585] hover:text-[#cccccc] transition-colors">
-              <Copy size={12} /> Copy
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high hover:bg-[#37373d] border border-vscode-border rounded text-[11px] text-[#858585] hover:text-[#cccccc] transition-colors">
-              <Plus size={12} /> Audit
-            </button>
+        )}
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 bg-[#5a1d1d]/50 border border-[#be1100]/30 rounded">
+            <AlertTriangle size={12} className="text-[#f48771] mt-0.5 shrink-0" />
+            <p className="text-[11px] text-[#f48771] font-mono">{error}</p>
           </div>
-        </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
       <div className="p-3 border-t border-vscode-border bg-surface-container-low">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5 ">
+          <div className="flex items-center gap-1.5">
             <Sparkles size={12} className="text-tertiary" />
-            <span className="text-[10px] text-[#858585] uppercase font-bold tracking-wider">Extraction_Engine</span>
+            <span className="text-[10px] text-[#858585] uppercase font-bold tracking-wider">
+              Privacy_Engine
+            </span>
           </div>
           <button className="flex items-center gap-1 px-1.5 py-0.5 bg-surface-container-high border border-vscode-border rounded text-[10px] text-[#cccccc] hover:bg-[#3c3c3c] transition-colors">
-            <span>Claude-4.7-Opus</span>
+            <span>Claude-Opus-4</span>
             <ChevronDown size={10} />
           </button>
         </div>
 
         <div className="relative">
-          <textarea 
-            placeholder="Message Clinical Assistant..."
-            className="w-full bg-[#3c3c3c] border border-transparent rounded p-2 text-[12px] text-[#cccccc] focus:outline-none focus:border-[#454545] transition-all resize-none"
+          <textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Message Clinical Assistant… (⌘↵ to send)"
+            disabled={isLoading}
+            className="w-full bg-[#3c3c3c] border border-transparent rounded p-2 text-[12px] text-[#cccccc] focus:outline-none focus:border-[#454545] transition-all resize-none disabled:opacity-50"
             rows={3}
           />
-          
           <div className="absolute bottom-2 right-2 flex items-center gap-2">
-             <button className="bg-surface-container-high text-[#cccccc] p-1 rounded hover:bg-[#454545] border border-vscode-border transition-colors">
-                <ArrowUp size={14} />
-             </button>
+            <button
+              onClick={handleSend}
+              disabled={isLoading || !inputValue.trim()}
+              className="bg-surface-container-high text-[#cccccc] p-1 rounded hover:bg-[#454545] border border-vscode-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Send (⌘↵)"
+            >
+              <ArrowUp size={14} />
+            </button>
           </div>
         </div>
+        <p className="text-[10px] text-[#858585] mt-1">⌘↵ to send</p>
       </div>
     </aside>
   );

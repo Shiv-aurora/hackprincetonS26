@@ -56,3 +56,68 @@ section per FINALIZE_PLAN step. The research code (`src/`, `tests/`,
   - `cd frontend && npm install` → 133 packages, no errors.
   - CI secret-scan regex (`sk-ant-[a-zA-Z0-9]{20}|hf_[a-zA-Z0-9]{30}|sk-proj-[a-zA-Z0-9]{20}|AKIA[A-Z0-9]{16}`) → zero matches on tracked files.
 - Commit: `[step-1] restructure repo for product build (backend/docs/product-build folders, deps, env, docs, CHANGELOG)`.
+
+## 2026-04-18 — Step 2: FastAPI backend scaffold
+
+- `backend/__init__.py`: package marker.
+- `backend/schemas.py`: Pydantic models for all five endpoints — AnalyzeRequest/Response,
+  ProxyRequest/Response (with PositionMapping), RouteRequest/Response,
+  CompleteRequest/Response, AuditLogEntry/Response, HealthResponse.
+- `backend/main.py`: FastAPI app with CORS (localhost:3000/5173/4173),
+  six endpoints — `GET /api/health`, `POST /api/analyze`, `POST /api/proxy`,
+  `POST /api/route`, `POST /api/complete`, `GET /api/audit`.
+  Detection uses regex Safe Harbor layer (`extract_regex_spans`) plus 15
+  clinical-trial-specific patterns covering DD-MMM-YYYY dates, subject IDs,
+  site names, ages, compound codes, doses, AE grades, study-day timing,
+  ORR/efficacy values, DSMB references, protocol amendments. Offline/mock
+  mode auto-detected from `ANTHROPIC_API_KEY`; mock path returns a
+  dynamically constructed ICH E2B narrative using the actual entity_map
+  placeholders, then fully rehydrated. In-memory audit log resets on restart
+  (no raw content stored).
+- `backend/tests/conftest.py`: shared path setup + DEMO_DOC fixture.
+- `backend/tests/test_analyze.py`, `test_proxy.py`, `test_route.py`,
+  `test_complete.py`, `test_audit.py`: 27 pytest tests covering all endpoints.
+- `frontend/tsconfig.json`: added `"types": ["vite/client"]` so
+  `import.meta.env` is typed correctly.
+- Validation:
+  - `pytest backend/tests -q` → `27 passed`.
+  - `pytest -q` (research suite) → `57 passed, 3 skipped` (unchanged).
+  - `curl http://localhost:8000/api/health` → `{"status":"ok","mock_mode":true,...}`.
+  - Demo document: 20 entities detected (6 PHI, 9 IP, 5 MNPI); routes to
+    `dp_tolerant`; proxy contains zero raw identifiers; rehydrated response
+    has zero unrehydrated tokens.
+- Commit: `[step-2] backend scaffold (FastAPI, schemas, 5 endpoints, 27 tests)`.
+
+## 2026-04-18 — Step 3: frontend wired to backend
+
+- `frontend/src/lib/api.ts`: typed API client using native `fetch` for all
+  five backend endpoints (`analyzeDocument`, `proxyDocument`, `routeDocument`,
+  `completeRequest`, `fetchAudit`, `checkHealth`). Base URL from
+  `VITE_API_URL` env var with `http://localhost:8000` fallback.
+- `frontend/src/lib/demoDocument.ts`: `DEMO_DOCUMENT` constant (the canonical
+  SAE narrative) and `DEMO_PROMPT` ("Rewrite this in ICH E2B format.") for
+  pre-fill on load.
+- `frontend/src/App.tsx`: loads entity analysis and proxy on mount via
+  `Promise.all([analyzeDocument, proxyDocument])`; polls `/api/audit` every
+  5 s; owns `hoveredPlaceholder` shared hover state; shows a backend-error
+  banner if the server is unreachable; passes data down to `Workspace` and
+  `AssistantPanel`.
+- `frontend/src/components/Workspace.tsx`: replaced hardcoded text with
+  dynamic rendering. Document pane renders original text with colored
+  underlines per tier (phi=`text-phi`, ip=`text-ip`, mnpi=`text-mnpi`).
+  Proxy pane renders placeholder tokens as styled badges. Hovering an entity
+  in either pane activates synchronized highlight via `hoveredPlaceholder`.
+  Tooltip on hover shows subcategory and tier.
+- `frontend/src/components/AssistantPanel.tsx`: full message-state chat UI.
+  Sends to `/api/complete` on Send button or ⌘↵. Pre-filled with
+  `DEMO_PROMPT`. Shows routing badge (Abstract/DP/Local) and entity count
+  on each assistant response. Loading spinner while in flight. Backend-error
+  state shown inline.
+- `frontend/src/components/TitleBar.tsx`: added privacy pill — live entity
+  tier counts (PHI/IP/MNPI) from loaded document, plus total request count
+  from audit stats.
+- Validation:
+  - `tsc --noEmit` → zero errors.
+  - `pytest -q` → `57 passed, 3 skipped` (unchanged).
+  - `pytest backend/tests -q` → `27 passed` (unchanged).
+- Commit: `[step-3] frontend wired to backend (api client, dynamic workspace, chat, privacy pill)`.
