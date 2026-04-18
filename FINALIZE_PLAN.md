@@ -277,6 +277,8 @@ shows privacy pill. `tsc --noEmit` → 0 errors. Both test suites still green.
 
 ## Step 5 — Demo script rehearsal support
 
+**Status:** DONE — 2026-04-18. `scripts/demo.sh` starts backend + frontend, health-check waits, opens browser with `?demo=1`. `scripts/reset-demo.sh` calls `POST /api/audit/reset`. `docs/demo-script.md` has the exact 60-second beat-by-beat script. Demo document and prompt were already pre-loaded unconditionally from `DEMO_DOCUMENT`/`DEMO_PROMPT` constants; no App.tsx change needed. Both test suites green.
+
 **Goal:** Make sure the demo runs reliably, end to end, every time.
 
 **Tasks:**

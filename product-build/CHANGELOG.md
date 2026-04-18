@@ -135,3 +135,16 @@ section per FINALIZE_PLAN step. The research code (`src/`, `tests/`,
   - `pytest -q` → `57 passed, 3 skipped` (unchanged).
   - `pytest backend/tests -q` → `27 passed` (unchanged).
 - Commit: `[step-4] UX cleanup (activity bar labels, sidebar views, leaked-data banner, dp_tolerant gate)`.
+
+## 2026-04-18 — Step 5: Demo script rehearsal support
+
+- `scripts/demo.sh`: starts backend (uvicorn, port 8000) in background, polls `/api/health` until ready (30 s timeout), starts frontend (vite, port 5173), opens `http://localhost:5173/?demo=1` in the default browser, traps Ctrl+C to kill both processes cleanly. Sources `.env` if present.
+- `scripts/reset-demo.sh`: clears the audit log via `POST /api/audit/reset` so multiple demo runs start with a clean session. Prints a friendly error if the backend isn't reachable.
+- `docs/demo-script.md`: exact 60-second demo beats — Beat 1 (0:00–0:20, the problem + leaked-data banner), Beat 2 (0:20–0:40, click Send, narrate proxy transformation + rehydration), Beat 3 (0:40–0:55, research results — leak rate vs utility, DP bounds), Beat 4 (0:55–1:00, close line). Includes fallback instructions for offline mode.
+- Demo mode (`?demo=1`): the demo document and prompt are pre-loaded unconditionally (already implemented in Steps 3/4 via `DEMO_DOCUMENT`/`DEMO_PROMPT` constants). The URL param is passed by `demo.sh` as a signal; no code change required — the app already behaves correctly in all modes.
+- Validation:
+  - `chmod +x scripts/demo.sh scripts/reset-demo.sh` — both executable.
+  - `pytest -q` → `57 passed, 3 skipped` (unchanged).
+  - `pytest backend/tests -q` → `27 passed` (unchanged).
+  - `tsc --noEmit` → 0 errors.
+- Commit: `[step-5] demo scripts (demo.sh, reset-demo.sh, demo-script.md)`.
