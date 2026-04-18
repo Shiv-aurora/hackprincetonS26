@@ -63,6 +63,8 @@ It is **not appropriate** for:
 
 3. **Adaptive adversary evaluation.** Train the inversion attacker with knowledge of the NGSP routing decisions (as if the adversary can observe the proxy generation process). This tests the security of the mechanism under partial disclosure.
 
-4. **Operational pilot.** Run NGSP as a Chrome extension that intercepts clipboard paste events into web-based LLM chat interfaces. Measure latency impact, user bypass rate, and false-positive Safe Harbor stripping rate on real (non-PHI) clinical writing tasks.
+4. **Benchmark against newer sanitization baselines.** Compare NGSP directly against recent mechanisms such as CusText, CluSanT, and DYNTEXT, as well as attack-oriented evaluations like Tong et al. (2025), rather than only against Safe Harbor-only or no-privacy baselines.
 
-5. **Federated DP accounting.** Extend the session budget to track across users (not just sessions), enabling a site-level or organization-level privacy budget that degrades gracefully as aggregate exposure accumulates.
+5. **Operational pilot.** Run NGSP as a Chrome extension that intercepts clipboard paste events into web-based LLM chat interfaces. Measure latency impact, user bypass rate, and false-positive Safe Harbor stripping rate on real (non-PHI) clinical writing tasks.
+
+6. **Federated DP accounting.** Extend the session budget to track across users (not just sessions), enabling a site-level or organization-level privacy budget that degrades gracefully as aggregate exposure accumulates.

@@ -48,7 +48,7 @@ Gemma 4 (`google/gemma-4-E2B-it`) classifies the stripped input into one of thre
 
 where Δ = C = 1.0 (L2 sensitivity after clipping), δ = 1e-5, ε ∈ {0.5, 1.0, 2.0, 3.0, 5.0, 10.0}. Default target: ε = 3.0, giving σ ≈ 1.10.
 
-**Rényi DP accounting.** Per-step cost R_α = α·Δ²/(2σ²). Conversion to (ε, δ)-DP: ε = R_α + log(1/δ)/(α−1). The `RDPAccountant` class tracks cumulative budget per session; calls are hard-refused once the cap is reached (`BudgetExhaustedError`).
+**Rényi DP accounting.** Per-step cost R_α = α·Δ²/(2σ²). Conversion to (ε, δ)-DP: ε = R_α + log(1/δ)/(α−1). This follows the Rényi-DP accounting perspective introduced by Mironov (2017) and the practical subsampled accounting line developed by Wang et al. (2019). The `RDPAccountant` class tracks cumulative budget per session; calls are hard-refused once the cap is reached (`BudgetExhaustedError`).
 
 ### Answer Applier (`src/ngsp/answer_applier.py`)
 
@@ -134,7 +134,7 @@ Verified via context7 MCP before implementation:
 | `rapidfuzz` | current | Attack 1 fuzzy matching |
 | `scikit-learn` | current | Attack 4 logistic regression |
 
-Gemma model: `google/gemma-4-E2B-it` (smallest released Gemma 4 instruct variant, ~2B parameters). Loaded via HF `transformers` (not Ollama/llama.cpp) because the DP bottleneck path requires `output_hidden_states=True` in `model.generate`.
+Gemma model: `google/gemma-4-E2B-it` (smallest released Gemma 4 instruct variant, ~2B parameters). Loaded via HF `transformers` (not Ollama/llama.cpp) because the DP bottleneck path requires `output_hidden_states=True` in `model.generate`; model selection follows the published Gemma 4 model card.
 
 **MPS note**: Using `device_map="mps"` with `accelerate` causes a "Invalid buffer size: 9.51 GiB" pre-allocation failure on Apple Silicon. Workaround: load without `device_map`, then call `model.to("mps")` explicitly.
 

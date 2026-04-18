@@ -12,7 +12,7 @@
 
 | Symbol | Quantity | Threshold | Source |
 |--------|----------|-----------|--------|
-| F1_inv | Inversion attacker token-level F1 (Attack 3) | ≤ 0.09 | Expert Determination guidance, HHS 2012 |
+| F1_inv | Inversion attacker token-level F1 (Attack 3) | ≤ 0.09 | Expert Determination / de-identification guidance, HHS |
 | U_ratio | mean(proxy_score) / mean(original_score) | ≥ 0.85 | Clinical utility floor, project-internal |
 | AUC_mem | Membership inference AUC (Attack 4) | ≤ 0.55 | Random classifier = 0.5; 0.55 allows ±1σ |
 | leak_lit | Verbatim literal leak rate over sensitive spans (Attack 1) | ≤ 0.01 | Near-zero for structured identifiers post-Safe-Harbor |

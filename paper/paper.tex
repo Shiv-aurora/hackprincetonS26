@@ -57,28 +57,42 @@ isolating each defense component's contribution.
 \subsection{2. Related Work}\label{related-work}
 
 \textbf{Differential privacy for text.} Feyisetan et al.~(2020) apply
-local DP to word embeddings for text privatization. Yue et al.~(2021)
-propose a DP mechanism for text generation. Our approach differs in that
-we apply DP to hidden-state activations rather than token distributions,
-and we compose DP with a non-injective query synthesis path that
-provides stronger practical privacy for the dominant query class.
+local DP to word embeddings for text privatization, and Yue et
+al.~(2021) propose a natural-text sanitization mechanism. More recent
+work has sharpened both the mechanism design and the critique surface:
+Mattern et al.~(2022) analyze the limits of word-level DP, Chen et
+al.~(2023) introduce customized token-level sanitization, and Awon et
+al.~(2025), Zhang et al.~(2025), and Tong et al.~(2025) extend the
+modern text-sanitization literature with semantically-aware and
+attack-aware formulations. Our approach differs in that we apply DP to
+hidden-state activations rather than token distributions, and we compose
+DP with a non-injective query synthesis path that provides stronger
+practical privacy for the dominant query class.
 
-\textbf{LLM privacy filters.} Hyde et al.~(2022) study prompt injection
-and data leakage in LLM pipelines. Carlini et al.~(2021) demonstrate
-memorization in language models. Our threat model is more specific: we
-target quasi-identifier leakage in proxy text, not model memorization.
+\textbf{LLM privacy and leakage.} Carlini et al.~(2021) demonstrate
+training-data extraction from large language models. Mireshghallah et
+al.~(2022) quantify privacy risks via membership inference attacks, and
+Huang et al.~(2022) study leakage of personal information from large
+pretrained language models. Our threat model is more specific: we target
+quasi-identifier leakage in proxy text, not only model memorization at
+training time.
 
-\textbf{Clinical NLP de-identification.} Lample et al.~(2016), Johnson
-et al.~(2017). Standard de-identification systems focus on the 18 HIPAA
-Safe Harbor identifiers using rule-based and NER approaches. NGSP's Safe
+\textbf{Clinical NLP de-identification.} Lample et al.~(2016),
+Dernoncourt et al.~(2017), Liu et al.~(2017), and Friedrich et
+al.~(2019) anchor the transition from sequence-labeling-based PHI
+removal toward privacy-preserving text representations for medical
+records. Standard de-identification systems focus on the 18 HIPAA Safe
+Harbor identifiers using rule-based and NER approaches. NGSP's Safe
 Harbor component applies the same approach but treats it as the
 \emph{first} layer of a composed defense, not the only one.
 
-\textbf{Privacy-preserving LLM inference.} Oblivious inference
-approaches (Mishra et al., 2020; Hao et al., 2022) provide cryptographic
-guarantees but impose latency costs incompatible with interactive use.
-NGSP trades cryptographic strength for practical deployability on
-commodity hardware.
+\textbf{Privacy accounting and practical deployment.} Mironov (2017)
+introduces Rényi differential privacy, and Wang et al.~(2019) provide
+the subsampled analytical moments accountant used widely in practical
+composition analyses. NGSP adopts this accounting perspective, but
+couples it to a local-model mediation architecture and a task-aware
+router designed for interactive drafting workflows on commodity
+hardware.
 
 \subsection{3. Threat Model}\label{threat-model}
 
