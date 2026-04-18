@@ -23,15 +23,15 @@ class LocalModelConfig(BaseModel):
 
     @field_validator("model_id")
     @classmethod
+    # Reject empty model IDs early; from_pretrained would give a confusing error later.
     def _nonempty_model_id(cls, v: str) -> str:
-        # Reject empty model IDs early; from_pretrained would give a confusing error later.
         if not v.strip():
             raise ValueError("model_id must be a non-empty string")
         return v
 
     @model_validator(mode="after")
+    # Validate that bitsandbytes quantization is only requested on CUDA-capable devices.
     def _quant_requires_cuda(self) -> "LocalModelConfig":
-        # bitsandbytes quantization is CUDA-only; fail at config time, not load time.
         if self.quantization != "none" and self.device not in ("auto", "cuda"):
             raise ValueError(
                 f"quantization={self.quantization!r} requires device='cuda' or 'auto'; "
@@ -39,8 +39,8 @@ class LocalModelConfig(BaseModel):
             )
         return self
 
-    # Build a config by reading GEMMA_MODEL_ID, NGSP_DEVICE, NGSP_QUANTIZATION from the env.
     @classmethod
+    # Build a config by reading GEMMA_MODEL_ID, NGSP_DEVICE, NGSP_QUANTIZATION from the env.
     def from_env(cls) -> "LocalModelConfig":
         load_dotenv()
         return cls(
@@ -125,12 +125,19 @@ class LocalModel:
         dtype_map = {"bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}
         torch_dtype = dtype_map[self.dtype_name]
 
+        # device_map="auto" works correctly only for CUDA (accelerate / bitsandbytes).
+        # For MPS and CPU, load to CPU first, then move to target device — avoids the
+        # accelerate memory-pre-allocation bug that fires on Apple Silicon with device_map.
+        use_device_map = self.device == "cuda" or self.config.quantization != "none"
+
         kwargs: dict[str, Any] = {
             "token": token,
             "torch_dtype": torch_dtype,
-            "device_map": self.device if self.device != "auto" else "auto",
             "attn_implementation": "sdpa",
         }
+        if use_device_map:
+            kwargs["device_map"] = "auto"
+
         if self.config.quantization != "none":
             from transformers import BitsAndBytesConfig
 
@@ -142,10 +149,10 @@ class LocalModel:
                     bnb_4bit_compute_dtype=torch.bfloat16,
                     bnb_4bit_quant_type="nf4",
                 )
-            # device_map must be "auto" with bitsandbytes; don't pin a single device.
-            kwargs["device_map"] = "auto"
 
         model = AutoModelForCausalLM.from_pretrained(self.config.model_id, **kwargs)
+        if not use_device_map and self.device not in ("cpu",):
+            model = model.to(self.device)
         model.eval()
         return model, tokenizer
 

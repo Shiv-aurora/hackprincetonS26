@@ -254,55 +254,47 @@ class TestAnswerApplier:
 # ──────────────────────────────────────────────────────────────────────────────
 
 class TestPipeline:
-    # Build a minimal mock LocalModel that returns canned generate output.
-    def _mock_local_model(self) -> MagicMock:
-        m = MagicMock()
-        m.generate.return_value = json.dumps(
-            {"path": "abstract_extractable", "rationale": "separable"}
-        )
-        vec = torch.zeros(256)
-        m.generate_with_hidden_states.return_value = ("generated text", vec)
-        m.embed.return_value = torch.zeros(256)
-        return m
-
-    # Build a minimal mock RemoteClient that returns a canned response.
-    def _mock_remote_client(self) -> MagicMock:
-        rc = MagicMock()
-        rc.complete.return_value = "The answer is 42."
-        return rc
-
-    # Pipeline.run must return a PipelineOutput with non-empty final_response.
+    # Pipeline.run (abstract_extractable path) must return a PipelineOutput with patched sub-modules.
     def test_run_abstract_extractable_path(self) -> None:
+        from unittest.mock import MagicMock, patch
         from ngsp.pipeline import Pipeline, SessionBudget, PipelineOutput
+        from ngsp.safe_harbor import StripResult
+        from ngsp.router import RouteDecision
 
-        local_model = self._mock_local_model()
-        # Make synthesize_query return something (router decides abstract_extractable)
-        # and safe_harbor strip return clean text.
-        local_model.generate.side_effect = [
-            # router call
-            json.dumps({"path": "abstract_extractable", "rationale": "separable"}),
-            # entity_extractor call
-            "[]",
-            # safe_harbor NER (no local_model needed for regex-only path)
-            # query_synthesizer call
-            "What is the standard dosing schedule?",
-        ]
-        # Override so safe_harbor doesn't call local_model (pass None in actual impl)
-        remote = self._mock_remote_client()
-        pipeline = Pipeline(local_model=local_model, remote_client=remote)
-        budget = SessionBudget(epsilon_cap=3.0)
-        out = pipeline.run("Tell me about the dose.", budget)
+        strip_result = StripResult(
+            stripped_text="Tell me about the dose.",
+            entity_map={},
+            spans=[],
+        )
+        decision = RouteDecision(path="abstract_extractable", rationale="separable")
+
+        local_model = MagicMock()
+        remote = MagicMock()
+        remote.complete.return_value = "The answer is 42."
+
+        with (
+            patch("ngsp.pipeline.strip_safe_harbor", return_value=strip_result),
+            patch("ngsp.pipeline.extract_quasi_identifiers", return_value=[]),
+            patch("ngsp.pipeline.route", return_value=decision),
+            patch("ngsp.pipeline.synthesize_query", return_value="What is the dosing schedule?"),
+        ):
+            pipeline = Pipeline(local_model=local_model, remote_client=remote)
+            budget = SessionBudget(epsilon_cap=3.0)
+            out = pipeline.run("Tell me about the dose.", budget)
+
         assert isinstance(out, PipelineOutput)
-        assert isinstance(out.final_response, str) and len(out.final_response) > 0
+        assert out.final_response == "The answer is 42."
+        assert out.route_decision.path == "abstract_extractable"
+        assert out.proxy_text == "What is the dosing schedule?"
+        assert out.epsilon_this_call == 0.0
 
-    # BudgetExhaustedError must fire when ε cap is already exceeded.
+    # BudgetExhaustedError must fire when ε cap is already set to zero.
     def test_run_raises_on_exhausted_budget(self) -> None:
+        from unittest.mock import MagicMock
         from ngsp.dp_mechanism import BudgetExhaustedError
         from ngsp.pipeline import Pipeline, SessionBudget
 
-        local_model = self._mock_local_model()
-        remote = self._mock_remote_client()
-        pipeline = Pipeline(local_model=local_model, remote_client=remote)
-        budget = SessionBudget(epsilon_cap=0.0)  # already exhausted
+        pipeline = Pipeline(local_model=MagicMock(), remote_client=MagicMock())
+        budget = SessionBudget(epsilon_cap=0.0)  # already at cap
         with pytest.raises(BudgetExhaustedError):
             pipeline.run("any input", budget)
