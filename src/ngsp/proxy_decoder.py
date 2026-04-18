@@ -10,7 +10,59 @@ from __future__ import annotations
 
 from typing import Any
 
-from data.schemas import SensitiveSpan
+from data.schemas import SensitiveCategory, SensitiveSpan
+
+# Categories whose string values must be replaced with abstract placeholders BEFORE the
+# paraphrase prompt is built. These are the clinical-trial quasi-identifiers and MNPI
+# markers that Safe Harbor does not catch — compound codes, site IDs, etc. — which
+# otherwise pass through decode_proxy verbatim because the noisy-hint channel alone is
+# insufficient to scrub them. Categories listed here mirror the attack suite's
+# TARGET_CATEGORIES and the dp_tolerant threat model.
+_REWRITE_CATEGORIES: frozenset[SensitiveCategory] = frozenset({
+    SensitiveCategory.COMPOUND_CODE,
+    SensitiveCategory.SITE_ID,
+    SensitiveCategory.EFFICACY_VALUE,
+    SensitiveCategory.AMENDMENT_RATIONALE,
+    SensitiveCategory.REGULATORY_QUESTION,
+    SensitiveCategory.DOSE,
+    SensitiveCategory.INDICATION,
+    SensitiveCategory.AE_GRADE,
+    SensitiveCategory.TIMING,
+    SensitiveCategory.INTERIM_RESULT,
+})
+
+
+# Substitute every span value in `_REWRITE_CATEGORIES` present in `stripped_input` with
+# a numbered category placeholder, mirroring safe_harbor.py's `<CATEGORY_N>` scheme.
+# Returns (rewritten_text, local_entity_map) where local_entity_map[placeholder]=value
+# so callers can optionally rehydrate. Longer values are replaced first to avoid
+# shorter substrings clobbering their parent (e.g. "SYN-5506" inside "SYN-5506-1-792").
+def _substitute_quasi_identifiers(
+    stripped_input: str, spans: list[SensitiveSpan]
+) -> tuple[str, dict[str, str]]:
+    targets = [
+        sp for sp in spans
+        if sp.category in _REWRITE_CATEGORIES and sp.value and sp.value in stripped_input
+    ]
+    # De-duplicate by value while preserving first occurrence; sort longest-first.
+    seen: set[str] = set()
+    unique_targets: list[SensitiveSpan] = []
+    for sp in sorted(targets, key=lambda s: -len(s.value)):
+        if sp.value in seen:
+            continue
+        seen.add(sp.value)
+        unique_targets.append(sp)
+
+    counters: dict[str, int] = {}
+    local_map: dict[str, str] = {}
+    text = stripped_input
+    for sp in unique_targets:
+        key = sp.category.value.upper()
+        counters[key] = counters.get(key, 0) + 1
+        placeholder = f"<{key}_{counters[key]}>"
+        local_map[placeholder] = sp.value
+        text = text.replace(sp.value, placeholder)
+    return text, local_map
 
 
 # Find the K vocabulary tokens whose embeddings are closest to the given (noisy) vector.
@@ -50,7 +102,10 @@ Return ONLY the rewritten text. No preamble.
 
 # Decode a noisy bottleneck embedding to a proxy text via nearest-neighbor hint + Gemma.
 # `noisy_vec` must be a cpu float tensor of shape (hidden_dim,) — output of the DP step.
-# Returns a proxy string suitable for sending to the Anthropic API.
+# Before building the paraphrase prompt, this function substitutes every quasi-identifier
+# / MNPI span value in `spans` with a numbered abstract placeholder so those values cannot
+# pass through the paraphraser verbatim. Returns a proxy string suitable for sending to
+# the remote API.
 def decode_proxy(
     stripped_input: str,
     noisy_vec: Any,
@@ -58,14 +113,15 @@ def decode_proxy(
     local_model: Any,
     k_hints: int = 20,
 ) -> str:
+    rewritten_input, _ = _substitute_quasi_identifiers(stripped_input, spans)
     hint_tokens = _nearest_vocab_tokens(noisy_vec, local_model, k=k_hints)
     hint_str = ", ".join(hint_tokens) if hint_tokens else "(none)"
     prompt = _DECODE_PROMPT_TEMPLATE.format(
         hint_words=hint_str,
-        stripped_input=stripped_input,
+        stripped_input=rewritten_input,
     )
     try:
         proxy = local_model.generate(prompt, max_tokens=512, temperature=0.5)
     except Exception:
-        proxy = stripped_input  # degrade gracefully
+        proxy = rewritten_input  # degrade gracefully
     return proxy.strip()
