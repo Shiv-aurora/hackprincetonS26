@@ -308,6 +308,8 @@ shows privacy pill. `tsc --noEmit` → 0 errors. Both test suites still green.
 
 ## Step 6 — Pitch deck + writeup
 
+**Status:** DONE — 2026-04-18. Three figures generated from real experiment data (`attack_leak_rates.png`, `routing_distribution.png`, `leak_rate_comparison.png`). `paper/paper.md` written — Abstract through Appendix, includes the negative DP finding as a primary result. `docs/pitch-deck-outline.md` — 8 slides, max 25 words body copy each.
+
 **Goal:** Materials judges see outside the demo itself.
 
 Human does most of this with Claude as writer. Claude Code's only role: generate the charts from experiment results.
@@ -331,6 +333,8 @@ Human does most of this with Claude as writer. Claude Code's only role: generate
 ---
 
 ## Step 7 — README and repo polish
+
+**Status:** DONE — 2026-04-18. Top-level README rewritten with one-command quick start, results table, and repo layout. `frontend/README.md` and `backend/README.md` created. `.gitignore` cleaned up (removed duplicate CLAUDE.md entries, fixed `.claude/` path).
 
 **Goal:** A judge who clones the repo can understand what this is in 30 seconds and run it in 5 minutes.
 

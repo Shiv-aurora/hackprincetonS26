@@ -148,3 +148,21 @@ section per FINALIZE_PLAN step. The research code (`src/`, `tests/`,
   - `pytest backend/tests -q` → `27 passed` (unchanged).
   - `tsc --noEmit` → 0 errors.
 - Commit: `[step-5] demo scripts (demo.sh, reset-demo.sh, demo-script.md)`.
+
+## 2026-04-18 — Step 6: Pitch deck + writeup
+
+- `paper/figures/attack_leak_rates.png`: grouped bar chart — verbatim leak rate per entity category, abstract_extractable vs dp_tolerant paths side by side. Red dashed line at Expert Determination threshold (0.09). Generated from `experiments/results/attack_results.json`.
+- `paper/figures/routing_distribution.png`: stacked bar chart — routing decision (abstract/dp/local) counts per document type (SAE/protocol/monitoring/writing). Generated from `experiments/results/route_distribution.json`.
+- `paper/figures/leak_rate_comparison.png`: hero chart — estimated verbatim leak rate "Direct to cloud LLM (100%)" vs "With NGSP routing (weighted path mix)" per entity category. Generated from attack and routing results.
+- `paper/paper.md`: research-paper-style writeup — Abstract, Problem, System Design, Methodology (corpus + model + metrics + attack suite), Results (routing distribution, per-path leak rates, flat DP calibration curve + explanation, hero comparison chart), Discussion (what works, what doesn't, implications), Future Work, Appendix (reproducibility commands). Explicitly documents the negative result: DP noise does not propagate to text surface with greedy decoder.
+- `docs/pitch-deck-outline.md`: 8-slide pitch deck outline — Title, Problem (leaked-data banner visual), Solution (app screenshot), Architecture (ASCII flow), Results (hero chart + table), Competitive 2×2, Ask/Future Work, Thank You. Max 25 words body copy per slide.
+- All figures generated with matplotlib using the VS Code dark color palette for visual consistency with the app.
+- Commit: `[step-6] paper, three figures, pitch deck outline`.
+
+## 2026-04-18 — Step 7: README and repo polish
+
+- `README.md`: rewritten — one-command quick start (`./scripts/demo.sh`), manual start instructions, what-you'll-see description, research results table, repository layout, experiment commands, license. Placeholder TODOs removed.
+- `frontend/README.md`: replaced stale AI Studio template with NGSP-specific instructions — prerequisites, run command, env vars table, tabs reference, type-check command.
+- `backend/README.md`: new file — prerequisites, run command, endpoint table (all 7 endpoints), offline vs online mode explanation, tests command, entity detection layer description.
+- `.gitignore`: removed duplicate and misplaced `CLAUDE.md` entries (added erroneously by tooling); fixed `.claude` entry to `.claude/` with trailing slash; kept `.mcp.json` and `.context-compass/` ignored.
+- Commit: `[step-7] README polish (root, frontend, backend), gitignore cleanup`.
