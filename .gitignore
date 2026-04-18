@@ -1,0 +1,45 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# venvs
+.venv/
+venv/
+env/
+
+# model weights — large, never committed
+models/
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+
+# raw experiment artifacts — reproducible from code, never committed raw
+experiments/results/raw/
+experiments/results/cache/
+
+# notebook / editor cruft
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+
+# logs
+*.log
+audit.jsonl
