@@ -1,0 +1,372 @@
+\section{Neural-Guided Semantic Proxy (NGSP): Privacy-Preserving
+Mediation of Clinical Trial Documents to Consumer LLM
+Interfaces}\label{neural-guided-semantic-proxy-ngsp-privacy-preserving-mediation-of-clinical-trial-documents-to-consumer-llm-interfaces}
+
+\textbf{Abstract.} Clinical trial staff routinely paste sensitive
+documents --- Serious Adverse Event narratives, protocol excerpts,
+monitoring reports --- into consumer LLM chat interfaces. Existing
+defenses either over-redact (destroying utility) or under-redact
+(leaking quasi-identifiers and protocol structure). We present NGSP, a
+Neural-Guided Semantic Proxy that runs Gemma 4 locally as a privacy
+filter composed with deterministic HIPAA Safe Harbor stripping and a
+calibrated (ε, δ)-differentially-private bottleneck. A three-way router
+directs inputs to one of three paths: abstract query synthesis (breaking
+injective entity linkage), DP-noised proxy generation (providing formal
+guarantees), or local-only answering (for content-inseparable tasks). We
+evaluate the system against five adversarial attack classes --- verbatim
+scan, cross-encoder similarity, trained inversion (primary threat
+model), membership inference, and utility regression --- on a synthetic
+clinical trial corpus of 1,200 documents with ground-truth sensitive
+span annotations. At ε = 3.0, δ = 1e-5, we report {[}results pending
+execution of experiments{]}. The hypothesis that the composed system
+simultaneously bounds inversion span-recovery F1 ≤ 0.09 and preserves
+utility ≥ 0.85 is {[}pending{]}. We report all results including
+negative findings.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{1. Introduction}\label{introduction}
+
+The gap between sanctioned clinical data handling systems and the
+practical utility of consumer LLM interfaces creates a structural
+pressure for policy violation. A medical writer preparing an SAE
+narrative for submission, a CRA summarizing a monitoring report, or a
+biostatistician querying an analysis plan will reach for a faster,
+better-quality tool when their sanctioned alternatives are slower or
+produce inferior output. Data Loss Prevention (DLP) systems respond by
+blocking pasting entirely, at the cost of driving users to personal
+devices. Business Associate Agreement (BAA) wrappers add legal coverage
+but do not reduce semantic information content in what is transmitted.
+
+NGSP takes a different approach: rather than blocking or permitting, it
+transforms. The local Gemma model acts as a privacy-aware intermediary
+that rewrites, abstracts, or adds calibrated noise before any text
+leaves the local device, allowing the high-quality cloud LLM to answer a
+privacy-safe variant of the original question.
+
+\textbf{Contributions:} 1. A three-path neural router that classifies
+queries into abstract-extractable, DP-tolerant, and local-only
+categories based on the separability of task intent from sensitive
+content. 2. A session-scoped Rényi DP accounting scheme for per-user
+privacy budget tracking with hard budget enforcement. 3. A five-attack
+adversarial test harness with ground-truth sensitive span annotations on
+a 1,200-document synthetic corpus. 4. A quantitative evaluation of the
+privacy-utility tradeoff across six ε values, with an ablation study
+isolating each defense component's contribution.
+
+\subsection{2. Related Work}\label{related-work}
+
+\textbf{Differential privacy for text.} Feyisetan et al.~(2020) apply
+local DP to word embeddings for text privatization. Yue et al.~(2021)
+propose a DP mechanism for text generation. Our approach differs in that
+we apply DP to hidden-state activations rather than token distributions,
+and we compose DP with a non-injective query synthesis path that
+provides stronger practical privacy for the dominant query class.
+
+\textbf{LLM privacy filters.} Hyde et al.~(2022) study prompt injection
+and data leakage in LLM pipelines. Carlini et al.~(2021) demonstrate
+memorization in language models. Our threat model is more specific: we
+target quasi-identifier leakage in proxy text, not model memorization.
+
+\textbf{Clinical NLP de-identification.} Lample et al.~(2016), Johnson
+et al.~(2017). Standard de-identification systems focus on the 18 HIPAA
+Safe Harbor identifiers using rule-based and NER approaches. NGSP's Safe
+Harbor component applies the same approach but treats it as the
+\emph{first} layer of a composed defense, not the only one.
+
+\textbf{Privacy-preserving LLM inference.} Oblivious inference
+approaches (Mishra et al., 2020; Hao et al., 2022) provide cryptographic
+guarantees but impose latency costs incompatible with interactive use.
+NGSP trades cryptographic strength for practical deployability on
+commodity hardware.
+
+\subsection{3. Threat Model}\label{threat-model}
+
+\textbf{System model.} A user on a corporate workstation runs an NGSP
+browser extension that intercepts text pasted into a consumer LLM chat
+interface. The NGSP process runs locally and holds the Gemma model
+weights. The extension communicates with the cloud LLM (Anthropic
+Claude) via the NGSP pipeline, forwarding only the privacy-processed
+proxy text.
+
+\textbf{Adversary model.} A passive adversary with access to: (a) all
+proxy texts forwarded to the cloud LLM, (b) a background corpus of
+clinical documents from the same distribution, (c) unlimited computation
+for offline attack model training. The adversary cannot observe: local
+Gemma activations, the entity\_map substitution dictionary, DP noise
+seeds, or routing decisions.
+
+\textbf{Attack goals:} 1. \emph{Verbatim recovery}: Does any sensitive
+span value appear literally in the proxy? 2. \emph{Semantic proximity}:
+Is the proxy semantically close enough to the original that
+retrieval-based re-identification is feasible? 3. \emph{Span
+prediction}: Given a proxy, can a trained model predict which tokens
+correspond to sensitive spans in the original? 4. \emph{Membership
+inference}: Can an adversary determine whether a specific entity
+(compound code) was mentioned in the original document? 5. \emph{Utility
+preservation} (inverted): Is the proxy useful enough to answer the
+original task?
+
+\subsection{4. System Description}\label{system-description}
+
+\subsubsection{4.1 Safe Harbor Stripper}\label{safe-harbor-stripper}
+
+Deterministic regex patterns for 14 of the 18 HIPAA Safe Harbor
+identifiers (dates, phone numbers, SSN, MRN, ZIP codes, email addresses,
+URLs, IP addresses, device IDs, account numbers, certificate numbers,
+vehicle IDs, web URLs, biometric IDs). A Gemma NER pass handles the
+remaining four (names, geographic subdivisions, full-face photographs as
+described text, and free-text identifiers). Detected entities are
+replaced with typed placeholders
+(\texttt{\textless{}PERSON\_1\textgreater{}},
+\texttt{\textless{}DATE\_1\textgreater{}}) and stored in a local
+\texttt{entity\_map}. The stripped text and entity\_map are the inputs
+to the router.
+
+\subsubsection{4.2 Router}\label{router}
+
+Gemma 4 receives the stripped text and classifies it as one of three
+paths. The classification prompt instructs Gemma to assess whether the
+\emph{task intent} is separable from \emph{entity-specific content}:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{abstract\_extractable}: The user's question can be rephrased
+  without reference to any entity in the document. Example: ``What are
+  the standard criteria for a Grade 3 AE?'' --- the answer is
+  independent of which patient or compound is involved.
+\item
+  \texttt{dp\_tolerant}: The answer requires conveying the document's
+  content, but semantic fidelity can tolerate distortion. Example:
+  ``Summarize this SAE narrative'' --- a noised proxy preserves enough
+  structure for a useful summary.
+\item
+  \texttt{local\_only}: Task and content are inseparable. Example: ``Is
+  this compound code consistent with the protocol amendment?'' ---
+  answering requires the specific entity values, which must never leave
+  the device.
+\end{itemize}
+
+The router falls back to \texttt{dp\_tolerant} on parse errors or model
+failures.
+
+\subsubsection{4.3 Query Synthesizer (Abstract-Extractable
+Path)}\label{query-synthesizer-abstract-extractable-path}
+
+For abstract-extractable inputs, Gemma generates a new self-contained
+question that captures the user's task intent without mentioning any
+entity from the stripped input. The synthesized query is sent to the
+cloud LLM. Because the mapping is non-injective (many inputs can produce
+the same synthesized query), this path provides strong practical privacy
+even without formal DP guarantees: there is no function from proxy →
+original entity set.
+
+\subsubsection{4.4 DP Bottleneck (DP-Tolerant
+Path)}\label{dp-bottleneck-dp-tolerant-path}
+
+Hidden states at the last layer of Gemma's generation pass are
+mean-pooled over new tokens to produce a single vector
+\texttt{h\ ∈\ ℝ\^{}d}. The mechanism:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Clip}: \texttt{h\_clip\ =\ h\ ·\ min(1,\ C/‖h‖₂)}, C = 1.0
+  (bounded L2 sensitivity)
+\item
+  \textbf{Noise}: \texttt{h\_noisy\ =\ h\_clip\ +\ N(0,\ σ²I)}, σ =
+  3.298/ε
+\item
+  \textbf{Decode}: Gemma paraphrase conditioned on the noisy embedding
+  as a semantic hint
+\item
+  \textbf{Account}: Rényi DP accountant accumulates R\_α = α/(2σ²) per
+  call; converts to (ε, δ)-DP at query time
+\end{enumerate}
+
+Per-session budget: ε\_cap = 3.0, δ = 1e-5.
+\texttt{BudgetExhaustedError} is raised when the cumulative session ε
+exceeds the cap.
+
+\subsubsection{4.5 Answer Applier}\label{answer-applier}
+
+The cloud LLM response is returned to the local process, where the
+entity\_map is re-applied (longest-key-first to avoid partial match
+collisions: \texttt{\textless{}PERSON\_12\textgreater{}} is replaced
+before \texttt{\textless{}PERSON\_1\textgreater{}}). The final answer
+with original entity values restored is returned to the user.
+
+\subsection{5. Experimental Setup}\label{experimental-setup}
+
+\textbf{Corpus.} 1,200 synthetic clinical trial documents (500 SAE
+narratives, 200 protocol excerpts, 200 monitoring reports, 300 CSR draft
+paragraphs). Generated with seed 42; reproducible via
+\texttt{src/data/}. Ground-truth sensitive span annotations provided by
+the \texttt{annotate()} oracle.
+
+\textbf{Evaluation split.} Inversion attacker: 80\% train / 20\% eval.
+Membership inference: positive/negative split by entity presence.
+Utility: 50-document random sample (seed 42).
+
+\textbf{Hardware.} Apple Silicon (MPS) for Gemma 4 inference and
+DistilBERT fine-tuning. CPU fallback tested. \texttt{device\_map="mps"}
+avoided (known accelerate pre-allocation issue on MPS; model loaded
+without device\_map, then \texttt{.to("mps")}).
+
+\textbf{Models.} Gemma 4 E2B-it (\texttt{google/gemma-4-E2B-it}),
+DistilBERT base uncased, \texttt{all-MiniLM-L6-v2}
+(sentence-transformers).
+
+\subsection{6. Results}\label{results}
+
+\emph{{[}Populate from
+\texttt{experiments/results/attacks\_eps3.0.json},
+\texttt{experiments/results/ablations.json},
+\texttt{experiments/results/calibration.json} after running
+experiments.{]}}
+
+See \texttt{paper/results.md} for the full results tables.
+
+\subsubsection{6.1 Privacy-Utility
+Tradeoff}\label{privacy-utility-tradeoff}
+
+{[}Insert Figure: \texttt{paper/figures/epsilon\_utility\_curve.png}{]}
+
+The calibration sweep over ε ∈ \{0.5, 1.0, 2.0, 3.0, 5.0, 10.0\} reveals
+the operating envelope. {[}Populate with actual findings from
+calibration.json.{]}
+
+\subsubsection{6.2 Attack Results at ε =
+3.0}\label{attack-results-at-ux3b5-3.0}
+
+\textbf{Attack 1 (Verbatim):} {[}Values from
+\texttt{results{[}"verbatim"{]}} in attacks\_eps3.0.json.{]}
+
+\textbf{Attack 2 (Similarity):} {[}Values from
+\texttt{results{[}"similarity"{]}}.{]}
+
+\textbf{Attack 3 (Inversion):} {[}Values from
+\texttt{results{[}"inversion"{]}}.{]} - H₁ \textbf{{[}PASS/FAIL{]}}:
+overall\_f1 = {[}value{]} vs.~threshold 0.09
+
+\textbf{Attack 4 (Membership):} {[}Values from
+\texttt{results{[}"membership"{]}}.{]}
+
+\textbf{Attack 5 (Utility):} {[}Values from
+\texttt{results{[}"utility"{]}}.{]} - H₂ \textbf{{[}PASS/FAIL{]}}:
+utility\_ratio = {[}value{]} vs.~threshold 0.85
+
+\subsubsection{6.3 Ablation Study}\label{ablation-study}
+
+{[}Insert Table from \texttt{experiments/results/ablations.json}.{]}
+
+The ablation isolates each component's contribution. Key question for
+H₃: does any single component achieve both H₁ and H₂?
+
+\subsection{7. Discussion}\label{discussion}
+
+See \texttt{paper/discussion.md} for the full discussion. Key points:
+
+\textbf{Privacy-utility curve.} {[}Characterize after results.{]}
+
+\textbf{Proxy decoder limitation.} The v1 proxy decoder uses the noisy
+hidden state as a soft hint to a Gemma paraphrase call rather than as a
+hard decoding constraint. This provides approximate rather than strict
+DP guarantees for the proxy text. A dedicated decoder network would be
+the correct next step.
+
+\textbf{Synthetic corpus scope.} All evaluation is on synthetic data.
+Generalization to real clinical documents requires a separately governed
+study.
+
+\subsection{8. Limitations}\label{limitations}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Synthetic corpus only; generalization to real data is untested.
+\item
+  Passive adversary only; adaptive adversaries are out of scope.
+\item
+  DP path proxy decoder provides approximate, not strict, guarantees.
+\item
+  Rare-entity membership inference (\textless{} 5 appearances) is not
+  evaluated.
+\item
+  Latency impact on user adoption is not measured.
+\item
+  Gemma 4 at 2B parameters; larger models may produce better routing and
+  proxy quality.
+\end{enumerate}
+
+\subsection{9. Conclusion}\label{conclusion}
+
+NGSP demonstrates the feasibility of a three-layer composed privacy
+architecture (Safe Harbor + neural routing + DP bottleneck) as a
+practical alternative to DLP blocking for clinical trial document
+handling. The five-attack adversarial evaluation provides a quantitative
+characterization of the privacy-utility tradeoff at multiple ε values.
+{[}Conclude with findings after experiments run.{]}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{Appendix A --- Repository
+Structure}\label{appendix-a-repository-structure}
+
+\begin{verbatim}
+ngsp-clinical/
+├── src/ngsp/         # Pipeline implementation
+├── src/attacks/      # Five attack classes
+├── src/data/         # Synthetic corpus generators
+├── experiments/      # Attack battery and calibration runners
+├── tests/            # Pytest test suite (74 tests, 0 failures)
+├── paper/            # This document and supporting files
+└── scripts/          # Setup, download, comment checker
+\end{verbatim}
+
+\subsection{Appendix B --- Running the
+Experiments}\label{appendix-b-running-the-experiments}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Prerequisites}
+\ExtensionTok{./scripts/setup.sh}
+\ExtensionTok{python3}\NormalTok{ scripts/download\_gemma.py   }\CommentTok{\# requires HF\_TOKEN with Gemma 4 access}
+\FunctionTok{cp}\NormalTok{ .env.example .env                }\CommentTok{\# fill in ANTHROPIC\_API\_KEY}
+
+\CommentTok{\# Smoke tests (no model load, no API calls)}
+\ExtensionTok{pytest} \AttributeTok{{-}q}\NormalTok{ tests/test\_attacks.py tests/test\_mock\_data.py}
+
+\CommentTok{\# Full attack battery at ε = 3.0}
+\ExtensionTok{python3}\NormalTok{ experiments/run\_attacks.py }\AttributeTok{{-}{-}epsilon}\NormalTok{ 3.0 }\AttributeTok{{-}{-}n{-}docs}\NormalTok{ 50}
+
+\CommentTok{\# Ablation study}
+\ExtensionTok{python3}\NormalTok{ experiments/ablations.py }\AttributeTok{{-}{-}n{-}docs}\NormalTok{ 20}
+
+\CommentTok{\# Privacy{-}utility calibration sweep}
+\ExtensionTok{python3}\NormalTok{ experiments/calibrate\_epsilon.py}
+
+\CommentTok{\# Comment invariant check}
+\ExtensionTok{python3}\NormalTok{ scripts/check\_comments.py }\AttributeTok{{-}{-}path}\NormalTok{ src/}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Appendix C --- Sensitive Category
+Taxonomy}\label{appendix-c-sensitive-category-taxonomy}
+
+The \texttt{SensitiveCategory} enum in \texttt{src/data/schemas.py}
+covers:
+
+\textbf{HIPAA Safe Harbor (18):} NAME, DATE, PHONE, FAX, EMAIL, SSN,
+MRN, HEALTH\_PLAN\_NUMBER, ACCOUNT\_NUMBER, CERTIFICATE\_NUMBER,
+VEHICLE\_ID, DEVICE\_ID, URL, IP\_ADDRESS, BIOMETRIC\_ID, PHOTO,
+GEOGRAPHIC\_SUBDIVISION, OTHER\_UNIQUE
+
+\textbf{Quasi-identifiers:} COMPOUND\_CODE, SITE\_ID, DOSE, INDICATION,
+EFFICACY\_VALUE, AE\_GRADE, TIMING, COMORBIDITY
+
+\textbf{MNPI:} INTERIM\_RESULT, AMENDMENT\_RATIONALE,
+REGULATORY\_QUESTION

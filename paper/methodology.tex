@@ -1,0 +1,303 @@
+\section{Methodology}\label{methodology}
+
+\subsection{1. Threat Model}\label{threat-model}
+
+\textbf{Adversary.} A passive, computationally bounded adversary who
+receives only the proxy text forwarded to the cloud LLM. The adversary
+cannot observe: (a) the local Gemma model weights or activations, (b)
+the entity\_map substitution dictionary, (c) the DP noise seed, (d) the
+routing decision. The adversary may hold a large corpus of clinical
+documents from the same distribution to train inversion models.
+
+\textbf{Attack surface.} Five attack classes are evaluated (§4). The
+primary threat model is the trained inversion attacker (Attack 3): given
+enough proxy--original pairs from prior interactions, can an adversary
+build a model that recovers sensitive token spans from proxy text alone?
+
+\textbf{Out of scope.} Side-channel attacks against the local process,
+attacks exploiting the Anthropic API response, adaptive adversaries with
+knowledge of the NGSP internals, and real patient data are all
+explicitly out of scope.
+
+\subsection{2. System Architecture}\label{system-architecture}
+
+The NGSP pipeline composes three defense layers:
+
+\subsubsection{\texorpdfstring{Layer 1 --- Safe Harbor Stripper
+(\texttt{src/ngsp/safe\_harbor.py})}{Layer 1 --- Safe Harbor Stripper (src/ngsp/safe\_harbor.py)}}\label{layer-1-safe-harbor-stripper-srcngspsafe_harbor.py}
+
+Deterministic regex + optional Gemma NER pass for the 18 HIPAA Safe
+Harbor identifiers (45 CFR §164.514(b)(2)). Returns a
+\texttt{StripResult} with: - \texttt{stripped\_text}: input with
+entities replaced by placeholders
+(\texttt{\textless{}PERSON\_1\textgreater{}},
+\texttt{\textless{}DATE\_1\textgreater{}}, etc.) - \texttt{entity\_map}:
+dict mapping placeholder → original value (never leaves the local
+process) - \texttt{spans}: list of \texttt{SensitiveSpan} objects with
+character offsets
+
+\subsubsection{\texorpdfstring{Layer 2 --- Neural Router
+(\texttt{src/ngsp/router.py})}{Layer 2 --- Neural Router (src/ngsp/router.py)}}\label{layer-2-neural-router-srcngsprouter.py}
+
+Gemma 4 (\texttt{google/gemma-4-E2B-it}) classifies the stripped input
+into one of three paths:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1429}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.6190}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2381}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Path
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Fraction (design target)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Handling
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{abstract\_extractable} & \textasciitilde70\% & Query synthesizer
+generates a new self-contained question \\
+\texttt{dp\_tolerant} & \textasciitilde20\% & DP bottleneck with
+calibrated Gaussian noise \\
+\texttt{local\_only} & \textasciitilde10\% & Gemma answers locally; no
+cloud call made \\
+\end{longtable}
+}
+
+\subsubsection{Layer 3 --- Path-Specific Privacy
+Mechanism}\label{layer-3-path-specific-privacy-mechanism}
+
+\textbf{Abstract-extractable path}
+(\texttt{src/ngsp/query\_synthesizer.py}): Gemma generates a new
+question that captures task intent without referencing sensitive
+entities. The mapping is non-injective by construction: multiple inputs
+can produce the same synthesized query, making inversion statistically
+impossible even for an adversary with the proxy.
+
+\textbf{DP-tolerant path} (\texttt{src/ngsp/dp\_mechanism.py}):
+Hidden-state bottleneck at layer −1 of Gemma 4. Per-call mechanism: 1.
+Generate proxy text; pool hidden states → single vector
+\texttt{h\ ∈\ ℝ\^{}d}. 2. Clip to L2 norm C = 1.0:
+\texttt{h\_clip\ =\ h\ ·\ min(1,\ C/‖h‖₂)}. 3. Add Gaussian noise:
+\texttt{h\_noisy\ =\ h\_clip\ +\ N(0,\ σ²I)}. 4. Decode proxy via Gemma
+paraphrase conditioned on noisy hint. 5. Accumulate ε via Rényi DP
+accountant.
+
+\textbf{DP calibration.} σ is set analytically:
+
+\begin{verbatim}
+σ = Δ · √(2 ln(1.25/δ)) / ε
+\end{verbatim}
+
+where Δ = C = 1.0 (L2 sensitivity after clipping), δ = 1e-5, ε ∈ \{0.5,
+1.0, 2.0, 3.0, 5.0, 10.0\}. Default target: ε = 3.0, giving σ ≈ 1.10.
+
+\textbf{Rényi DP accounting.} Per-step cost R\_α = α·Δ²/(2σ²).
+Conversion to (ε, δ)-DP: ε = R\_α + log(1/δ)/(α−1). The
+\texttt{RDPAccountant} class tracks cumulative budget per session; calls
+are hard-refused once the cap is reached
+(\texttt{BudgetExhaustedError}).
+
+\subsubsection{\texorpdfstring{Answer Applier
+(\texttt{src/ngsp/answer\_applier.py})}{Answer Applier (src/ngsp/answer\_applier.py)}}\label{answer-applier-srcngspanswer_applier.py}
+
+Re-applies entity\_map to the Anthropic response (longest-key-first to
+avoid partial-match collisions) before returning the final answer to the
+user.
+
+\subsection{3. Synthetic Corpus}\label{synthetic-corpus}
+
+All evaluation uses \textbf{synthetic data only}. The corpus is
+generated by \texttt{src/data/} with seed 42 (reproducible). Statistics:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2295}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1803}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2295}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3607}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Document type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Generator
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target count
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Sensitive categories
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+SAE narratives & \texttt{synthetic\_sae.py} & 500 & NAME, DATE, SITE,
+COMPOUND\_CODE, AE\_GRADE, EFFICACY\_VALUE, \ldots{} \\
+Protocol excerpts & \texttt{synthetic\_protocol.py} & 200 & DOSE,
+ELIGIBILITY\_CRITERION, AMENDMENT\_RATIONALE, \ldots{} \\
+Monitoring reports & \texttt{synthetic\_monitoring.py} & 200 & SITE\_ID,
+INVESTIGATOR\_NAME, ENROLLMENT\_STAT, \ldots{} \\
+CSR drafts & \texttt{synthetic\_writing.py} & 300 & INTERIM\_RESULT,
+REGULATORY\_QUESTION, \ldots{} \\
+\end{longtable}
+}
+
+Ground-truth sensitive spans are tracked at entity-slot insertion time;
+the \texttt{annotate(doc)} oracle in \texttt{src/data/annotator.py}
+returns the full \texttt{list{[}SensitiveSpan{]}} with precise character
+offsets.
+
+Fake entity conventions: - Names: \texttt{Dr.\ Testname\ Alpha},
+\texttt{Patient\ Delta-7}, etc. - Compound codes: \texttt{SYN-XXXX}
+format - Site IDs: 9000-range integers - Indications: blended synthetic
+vocabulary (e.g., ``Synthofibrosis Type II'')
+
+\subsection{4. Attack Suite}\label{attack-suite}
+
+\subsubsection{\texorpdfstring{Attack 1 --- Verbatim
+(\texttt{src/attacks/verbatim.py})}{Attack 1 --- Verbatim (src/attacks/verbatim.py)}}\label{attack-1-verbatim-srcattacksverbatim.py}
+
+For each \texttt{(proxy\_text,\ list{[}SensitiveSpan{]})} pair: -
+\textbf{Literal check}: \texttt{span.value\ in\ proxy\_text}
+(case-sensitive) - \textbf{Fuzzy check}:
+\texttt{rapidfuzz.fuzz.partial\_ratio(span.value,\ proxy\_text)\ ≥\ threshold}
+(default 85)
+
+Metric: per-category leak rate and corpus-level
+\texttt{overall\_literal\_leak\_rate}.
+
+\subsubsection{\texorpdfstring{Attack 2 --- Cross-encoder Similarity
+(\texttt{src/attacks/similarity.py})}{Attack 2 --- Cross-encoder Similarity (src/attacks/similarity.py)}}\label{attack-2-cross-encoder-similarity-srcattackssimilarity.py}
+
+Bi-encoder model: \texttt{all-MiniLM-L6-v2} (sentence-transformers).
+Cosine similarity between \texttt{encode(original)} and
+\texttt{encode(proxy)}. Metrics: \texttt{mean\_sim},
+\texttt{median\_sim}, \texttt{p95\_sim},
+\texttt{fraction\_above\_threshold} (threshold = 0.85).
+
+High similarity indicates the proxy preserves enough semantic content
+that a retrieval attack could link it to the original.
+
+\subsubsection{\texorpdfstring{Attack 3 --- Trained Inversion
+(\texttt{src/attacks/inversion.py})}{Attack 3 --- Trained Inversion (src/attacks/inversion.py)}}\label{attack-3-trained-inversion-srcattacksinversion.py}
+
+Primary threat model. \texttt{DistilBertForTokenClassification}
+(distilbert-base-uncased) trained to predict per-token binary labels: 1
+if the token overlaps any sensitive span in the original document, 0
+otherwise.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Dataset split}: 80\% train / 20\% evaluation
+  (seed-deterministic)
+\item
+  \textbf{Training}: 3 epochs, AdamW lr = 2e-5, batch size 1, MPS/CPU
+  device
+\item
+  \textbf{Metric}: token-level F1 on held-out eval set
+\item
+  \textbf{Random baseline}: predict positive with probability = corpus
+  positive-token rate
+\item
+  \textbf{Shuffle-pair control}: train on same proxies with labels from
+  a different (shuffled) document; confirms learned signal is not
+  spurious
+\end{itemize}
+
+Threshold for H₁: F1 ≤ 0.09.
+
+\subsubsection{\texorpdfstring{Attack 4 --- Membership Inference
+(\texttt{src/attacks/membership.py})}{Attack 4 --- Membership Inference (src/attacks/membership.py)}}\label{attack-4-membership-inference-srcattacksmembership.py}
+
+For each of the top-3 most-frequent compound codes in the corpus: -
+\textbf{Positive set}: proxy embeddings from documents mentioning the
+entity - \textbf{Negative set}: proxy embeddings from control documents
+- \textbf{Classifier}: logistic regression on \texttt{all-MiniLM-L6-v2}
+embeddings (scikit-learn) - \textbf{Metric}: AUC-ROC (expected ≈ 0.5
+under strong privacy)
+
+\subsubsection{\texorpdfstring{Attack 5 --- Utility Regression
+(\texttt{src/attacks/utility.py})}{Attack 5 --- Utility Regression (src/attacks/utility.py)}}\label{attack-5-utility-regression-srcattacksutility.py}
+
+For each document in a 50-doc evaluation sample: 1. Original path: send
+original text to Anthropic API with task prompt (``rewrite as a concise
+plain-language summary''); receive response. 2. Proxy path: run full
+NGSP pipeline; send proxy text to Anthropic API; receive response. 3.
+Judge both responses via Claude-as-judge with a scoring prompt (0.0 =
+useless, 1.0 = identical meaning). 4.
+\texttt{utility\_ratio\ =\ mean(proxy\_score)\ /\ mean(original\_score)}.
+
+All Anthropic API calls route through \texttt{RemoteClient} (canary
+detection + hash-only audit log enforced).
+
+\subsection{5. Library Versions}\label{library-versions}
+
+Verified via context7 MCP before implementation:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2903}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.5161}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1935}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Library
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Version checked
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Role
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{transformers} & 5.5.4 & Gemma 4 inference, DistilBERT
+fine-tune \\
+\texttt{anthropic} & 0.96.0 & Anthropic API client \\
+\texttt{huggingface\_hub} & 1.11.0 & Model download (note:
+\texttt{resume\_download} removed in v1.0) \\
+\texttt{sentence-transformers} & current & Attacks 2 and 4 embeddings \\
+\texttt{torch} & current stable & GPU/MPS tensor ops \\
+\texttt{opacus} & current & Rényi DP reference (accountant inlined for
+session-scope control) \\
+\texttt{rapidfuzz} & current & Attack 1 fuzzy matching \\
+\texttt{scikit-learn} & current & Attack 4 logistic regression \\
+\end{longtable}
+}
+
+Gemma model: \texttt{google/gemma-4-E2B-it} (smallest released Gemma 4
+instruct variant, \textasciitilde2B parameters). Loaded via HF
+\texttt{transformers} (not Ollama/llama.cpp) because the DP bottleneck
+path requires \texttt{output\_hidden\_states=True} in
+\texttt{model.generate}.
+
+\textbf{MPS note}: Using \texttt{device\_map="mps"} with
+\texttt{accelerate} causes a ``Invalid buffer size: 9.51 GiB''
+pre-allocation failure on Apple Silicon. Workaround: load without
+\texttt{device\_map}, then call \texttt{model.to("mps")} explicitly.
+
+\subsection{6. Reproducibility}\label{reproducibility}
+
+\begin{itemize}
+\tightlist
+\item
+  All corpus generators accept a \texttt{seed} parameter (default 42).
+\item
+  All attack randomness is seeded: DistilBERT training
+  (\texttt{torch.manual\_seed}, \texttt{np.random.seed},
+  \texttt{random.seed}), membership inference train/test split, verbatim
+  and similarity evaluations are deterministic.
+\item
+  Model names and versions are recorded in every result JSON.
+\item
+  Raw inputs and outputs are never logged; only SHA-256 hashes appear in
+  \texttt{experiments/results/audit.jsonl}.
+\item
+  Results JSON files are written to \texttt{experiments/results/}. The
+  directory is excluded from \texttt{.gitignore} at the raw result
+  level; summary files may be committed.
+\end{itemize}

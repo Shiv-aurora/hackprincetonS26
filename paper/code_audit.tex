@@ -1,0 +1,88 @@
+\section{Code Audit --- One-Line Comment
+Invariant}\label{code-audit-one-line-comment-invariant}
+
+\subsection{Audit Procedure}\label{audit-procedure}
+
+Every Python file in \texttt{src/} is checked by
+\texttt{scripts/check\_comments.py}, which: 1. Parses the file with
+\texttt{ast.parse} to enumerate all \texttt{FunctionDef} and
+\texttt{AsyncFunctionDef} nodes. 2. Tokenizes the file to locate
+\texttt{COMMENT} tokens. 3. For each \texttt{def}, walks backward from
+its line number through any intervening decorator lines (\texttt{@}) and
+blank lines. A one-line comment must appear as a direct predecessor
+(only decorators and blank lines allowed between the comment and the
+\texttt{def}).
+
+The invariant is from \texttt{CLAUDE.md} §5: ``Every function has a
+one-line comment directly above its \texttt{def} line.''
+
+\subsection{Audit Results}\label{audit-results}
+
+\subsubsection{Phase 3 completion
+(2026-04-18)}\label{phase-3-completion-2026-04-18}
+
+\begin{verbatim}
+python3 scripts/check_comments.py --path src/
+OK — all defs have a one-line comment directly above. (src)
+\end{verbatim}
+
+\textbf{Files checked (26):} - \texttt{src/attacks/\_\_init\_\_.py} -
+\texttt{src/attacks/inversion.py} - \texttt{src/attacks/membership.py} -
+\texttt{src/attacks/similarity.py} - \texttt{src/attacks/utility.py} -
+\texttt{src/attacks/verbatim.py} - \texttt{src/data/\_\_init\_\_.py} -
+\texttt{src/data/\_fakers.py} - \texttt{src/data/\_vocab.py} -
+\texttt{src/data/annotator.py} - \texttt{src/data/canary.py} -
+\texttt{src/data/schemas.py} -
+\texttt{src/data/synthetic\_monitoring.py} -
+\texttt{src/data/synthetic\_protocol.py} -
+\texttt{src/data/synthetic\_sae.py} -
+\texttt{src/data/synthetic\_writing.py} -
+\texttt{src/ngsp/\_\_init\_\_.py} - \texttt{src/ngsp/answer\_applier.py}
+- \texttt{src/ngsp/dp\_mechanism.py} -
+\texttt{src/ngsp/entity\_extractor.py} -
+\texttt{src/ngsp/local\_model.py} - \texttt{src/ngsp/pipeline.py} -
+\texttt{src/ngsp/proxy\_decoder.py} -
+\texttt{src/ngsp/query\_synthesizer.py} -
+\texttt{src/ngsp/remote\_client.py} - \texttt{src/ngsp/router.py} -
+\texttt{src/ngsp/safe\_harbor.py}
+
+\textbf{Violations:} 0
+
+\subsection{Special Cases Handled}\label{special-cases-handled}
+
+\textbf{Pydantic validators with decorator chains.} CLAUDE.md requires
+the comment directly above the \texttt{def}, which means it must appear
+between the last decorator and the \texttt{def} line (not above the
+decorator chain). For example:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\AttributeTok{@field\_validator}\NormalTok{(}\StringTok{"model\_id"}\NormalTok{)}
+\AttributeTok{@classmethod}
+\CommentTok{\# Reject empty model IDs early; from\_pretrained would give a confusing error later.}
+\KeywordTok{def}\NormalTok{ \_nonempty\_model\_id(cls, v: }\BuiltInTok{str}\NormalTok{) }\OperatorTok{{-}\textgreater{}} \BuiltInTok{str}\NormalTok{:}
+\NormalTok{    ...}
+\end{Highlighting}
+\end{Shaded}
+
+The checker correctly handles this case: it walks backward from the
+\texttt{def} line through decorator lines and blank lines, accepting a
+comment at any point in that span.
+
+\textbf{\texttt{\_\_init\_\_} files.} Files with no function definitions
+(e.g., \texttt{src/ngsp/\_\_init\_\_.py},
+\texttt{src/attacks/\_\_init\_\_.py}) pass trivially with zero defs and
+zero violations.
+
+\subsection{CI Integration}\label{ci-integration}
+
+To run the check in CI, add to your test runner:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{python3}\NormalTok{ scripts/check\_comments.py }\AttributeTok{{-}{-}path}\NormalTok{ src/}
+\end{Highlighting}
+\end{Shaded}
+
+This exits with code 0 on success, code 1 on any violation. It can be
+added as a pre-commit hook or a GitHub Actions step.

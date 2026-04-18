@@ -1,0 +1,249 @@
+\section{Results}\label{results}
+
+\begin{quote}
+\textbf{Note:} This file documents the result structure and expected
+findings. Populate with actual values by running:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{python}\NormalTok{ experiments/run\_attacks.py }\AttributeTok{{-}{-}epsilon}\NormalTok{ 3.0 }\AttributeTok{{-}{-}n{-}docs}\NormalTok{ 50}
+\ExtensionTok{python}\NormalTok{ experiments/ablations.py }\AttributeTok{{-}{-}n{-}docs}\NormalTok{ 20}
+\ExtensionTok{python}\NormalTok{ experiments/calibrate\_epsilon.py}
+\end{Highlighting}
+\end{Shaded}
+
+All claims must be traceable to a file in \texttt{experiments/results/}.
+\end{quote}
+
+\subsection{1. Privacy-Utility Curve}\label{privacy-utility-curve}
+
+Produced by \texttt{experiments/calibrate\_epsilon.py}. For each ε ∈
+\{0.5, 1.0, 2.0, 3.0, 5.0, 10.0\}:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1444}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1444}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2444}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+ε
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+σ (Gaussian)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Inversion F1
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Utility Ratio
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Passes H₁ (F1 ≤ 0.09)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Passes H₂ (U ≥ 0.85)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0.5 & \textasciitilde6.60 & \emph{TBD} & \emph{TBD} & \emph{TBD} &
+\emph{TBD} \\
+1.0 & \textasciitilde3.30 & \emph{TBD} & \emph{TBD} & \emph{TBD} &
+\emph{TBD} \\
+2.0 & \textasciitilde1.65 & \emph{TBD} & \emph{TBD} & \emph{TBD} &
+\emph{TBD} \\
+\textbf{3.0} & \textbf{\textasciitilde1.10} & \textbf{\emph{TBD}} &
+\textbf{\emph{TBD}} & \textbf{\emph{TBD}} & \textbf{\emph{TBD}} \\
+5.0 & \textasciitilde0.66 & \emph{TBD} & \emph{TBD} & \emph{TBD} &
+\emph{TBD} \\
+10.0 & \textasciitilde0.33 & \emph{TBD} & \emph{TBD} & \emph{TBD} &
+\emph{TBD} \\
+\end{longtable}
+}
+
+σ values computed analytically: σ = √(2 ln(1.25/1e-5)) / ε ≈ 3.298 / ε.
+
+Result source: \texttt{experiments/results/calibration.json}
+
+\subsection{2. Full Attack Battery at ε =
+3.0}\label{full-attack-battery-at-ux3b5-3.0}
+
+Result source: \texttt{experiments/results/attacks\_eps3.0.json}
+
+\subsubsection{Attack 1 --- Verbatim Leak}\label{attack-1-verbatim-leak}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+Category & Literal Leak Rate & Fuzzy Leak Rate (threshold 85) \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+NAME & \emph{TBD} & \emph{TBD} \\
+DATE & \emph{TBD} & \emph{TBD} \\
+SSN & \emph{TBD} & \emph{TBD} \\
+COMPOUND\_CODE & \emph{TBD} & \emph{TBD} \\
+SITE\_ID & \emph{TBD} & \emph{TBD} \\
+AE\_GRADE & \emph{TBD} & \emph{TBD} \\
+EFFICACY\_VALUE & \emph{TBD} & \emph{TBD} \\
+\textbf{Overall} & \textbf{\emph{TBD}} & \textbf{\emph{TBD}} \\
+\end{longtable}
+}
+
+\textbf{Expected finding:} Safe Harbor stripping should drive literal
+leak rates to near zero for structured identifiers (NAME, DATE, SSN,
+SITE\_ID). Compound codes and quasi-identifiers are handled by NGSP;
+their residual rates test the neural components' marginal value.
+
+\subsubsection{Attack 2 --- Cross-Encoder
+Similarity}\label{attack-2-cross-encoder-similarity}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Metric & Value \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+mean\_sim & \emph{TBD} \\
+median\_sim & \emph{TBD} \\
+p95\_sim & \emph{TBD} \\
+fraction\_above\_threshold (0.85) & \emph{TBD} \\
+\end{longtable}
+}
+
+\textbf{Expected finding:} The abstract-extractable path (query
+synthesis) should produce low similarity scores because the synthesized
+query captures task intent but drops entity specifics. The DP path may
+produce higher similarity scores since the proxy text retains sentence
+structure.
+
+\subsubsection{Attack 3 --- Trained Inversion (Primary
+Result)}\label{attack-3-trained-inversion-primary-result}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Metric & Value \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+overall\_f1 & \emph{TBD} \\
+baseline\_random\_f1 & \emph{TBD} \\
+control\_shuffle\_f1 & \emph{TBD} \\
+n\_train & \emph{TBD} \\
+n\_eval & \emph{TBD} \\
+\end{longtable}
+}
+
+\textbf{H₁ verdict:} \emph{TBD} (threshold: overall\_f1 ≤ 0.09)
+
+\textbf{Expected finding:} The shuffle-pair control F1 should be close
+to the random baseline, confirming that any learned signal above
+baseline is real and not a training artifact. If the main model F1 is
+also near baseline, NGSP successfully breaks the proxy→span mapping.
+
+\subsubsection{Attack 4 --- Membership
+Inference}\label{attack-4-membership-inference}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}llll@{}}
+\toprule\noalign{}
+Entity & AUC & n\_positive & n\_negative \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\emph{top entity 1} & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+\emph{top entity 2} & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+\emph{top entity 3} & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+\textbf{mean\_auc} & \textbf{\emph{TBD}} & & \\
+\end{longtable}
+}
+
+\textbf{Expected finding:} AUC near 0.5 indicates the proxy text does
+not expose whether a specific entity was mentioned in the original
+document. AUC significantly above 0.5 would indicate residual membership
+signal.
+
+\subsubsection{Attack 5 --- Downstream
+Utility}\label{attack-5-downstream-utility}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Metric & Value \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+mean\_original\_score & \emph{TBD} \\
+mean\_proxy\_score & \emph{TBD} \\
+utility\_ratio & \emph{TBD} \\
+n\_docs\_evaluated & \emph{TBD} \\
+\end{longtable}
+}
+
+\textbf{H₂ verdict:} \emph{TBD} (threshold: utility\_ratio ≥ 0.85)
+
+\subsection{3. Ablation Study}\label{ablation-study}
+
+Result source: \texttt{experiments/results/ablations.json}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3143}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Configuration
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Verbatim Literal Leak
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Verbatim Fuzzy Leak
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Inversion F1
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Safe Harbor only & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+Safe Harbor + synthesis & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+Safe Harbor + DP only & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+Full system & \emph{TBD} & \emph{TBD} & \emph{TBD} \\
+\end{longtable}
+}
+
+\textbf{Expected finding (H₃):} No single component should achieve both
+privacy and utility thresholds simultaneously. Safe Harbor alone
+eliminates structured PHI but leaves quasi-identifiers exposed. Query
+synthesis breaks the inversion signal for abstract-extractable inputs
+but cannot handle all document types. DP alone provides formal
+guarantees but may degrade utility at tight ε values. The full system
+combines all three.
+
+\textbf{Negative result to report honestly:} If the ablation shows that
+Safe Harbor alone already achieves F1 ≤ 0.09 (because the synthetic
+corpus's sensitive spans are dominated by Safe Harbor categories), that
+is a negative result for H₃ and should be stated clearly. It would mean
+NGSP provides marginal privacy improvement over simpler baselines on
+this corpus --- a finding worth reporting.
+
+\subsection{4. Comment Audit}\label{comment-audit}
+
+Result: \texttt{paper/code\_audit.md}
+
+Running \texttt{python3\ scripts/check\_comments.py\ -\/-path\ src/} as
+of Phase 3 completion:
+
+\begin{verbatim}
+OK — all defs have a one-line comment directly above. (src)
+\end{verbatim}
+
+Zero violations across all 26 Python files in \texttt{src/}.
