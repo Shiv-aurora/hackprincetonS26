@@ -23,6 +23,14 @@ Submission targets:
 
 ## Step 0 — Pre-flight (human, 10 minutes, before any Claude Code session)
 
+**Status:** DONE — 2026-04-18. Branch `product-build` was cut from `main`
+(`research-shiv` had already been merged via PR #1, HEAD `6270322`). Step 0
+item 2 is superseded: the submitted `FRONTEND/` folder is a live Vite + React
++ TypeScript + Tailwind v4 app, not a Stitch HTML export, so it was renamed to
+`frontend/` and replaces `docs/stitch-mockup.html`. The demo SAE narrative
+(item 3) was written to `docs/demo-document.md` unchanged. `pytest -q` still
+reports `57 passed, 3 skipped`.
+
 Human does these manually before starting Claude Code:
 
 1. Create branch `product-build` from `research-shiv`. Verify the research code is all present on this branch.
@@ -38,6 +46,29 @@ Subject 04-0023, a 68-year-old female at Site 104 (Princeton Regional Oncology),
 ---
 
 ## Step 1 — Repo restructuring
+
+**Status:** DONE — 2026-04-18. Divergences from the written spec, applied
+under the "live Vite/React scaffold" reality:
+
+- Frontend stack is Vite 6 + React 19 + TS + Tailwind v4, not Next.js. No
+  conversion. The plan's `NEXT_PUBLIC_API_URL` was implemented as
+  `VITE_API_URL` to match Vite conventions.
+- `frontend/package.json` was cleaned: unused `express` and `@types/express`
+  dropped; `@google/genai` retained to support the optional Gemini path in
+  `/api/complete`.
+- `docs/stitch-mockup.html` is not produced; `frontend/` is the live mockup.
+  Rationale captured in `docs/architecture.md` and `product-build/CHANGELOG.md`.
+- All other Step 1 tasks completed as written: `backend/` and `product-build/`
+  folders, `product-build/CHANGELOG.md`, `pyproject.toml` gains
+  `fastapi>=0.115`, `uvicorn[standard]>=0.30`, `httpx>=0.27`; root
+  `.env.example` gains `BACKEND_PORT=8000` and `VITE_API_URL=...`;
+  `docs/architecture.md`, CLAUDE.md §11, and a rewritten `README.md` all
+  landed. `.gitignore` extended for `node_modules/`, `frontend/dist/`,
+  `frontend/.vite/`, and `frontend/.env*` (with `.env.example` allow rule).
+- Validation gates passed: `pytest -q` → `57 passed, 3 skipped`;
+  `pip install -e .[dev]` resolved the new FastAPI deps;
+  `cd frontend && npm install` → 133 packages, 0 vulnerabilities;
+  CI secret-scan regex → 0 hits on tracked files.
 
 **Goal:** Professional repo structure with clean separation of research, backend, and frontend.
 

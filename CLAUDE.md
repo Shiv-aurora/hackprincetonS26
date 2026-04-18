@@ -189,3 +189,40 @@ The project is complete when:
 3. The research paper in `paper/` contains a formal hypothesis, methodology, results tables (including negative results), and a discussion that honestly states limitations.
 4. Every function in `src/` has a one-line explanation comment above its `def`.
 5. A fresh clone + `./scripts/setup.sh` + `pytest -q` passes on a supported machine.
+
+## 11. Product build phase (branch: `product-build`)
+
+The research prototype is complete on `main`. The hackathon submission is being
+assembled on the `product-build` branch, which wraps the research code with a
+FastAPI backend and a Vite + React frontend. The foundational rules for this
+phase come from `FINALIZE_PLAN.md` and are restated here so they survive
+context compaction:
+
+- **Do not modify the research code.** `src/ngsp/`, `src/attacks/`, `src/data/`,
+  `experiments/`, `paper/`, and `tests/` are frozen on `product-build`. If a
+  bug in research code surfaces during product integration, fix it on a
+  separate branch off `main`, merge that into `main`, then rebase
+  `product-build` on top. Never rewrite research code inline on
+  `product-build`.
+- **`pytest -q` must continue to pass.** Baseline is `57 passed, 3 skipped`.
+  Every product-build commit is validated against this gate.
+- **All product-build changes are logged in `product-build/CHANGELOG.md`.**
+  One dated entry per step with the concrete files touched.
+- **One commit per step.** Commit messages use the `[step-N]` prefix to match
+  FINALIZE_PLAN.md.
+- **Secrets never enter git.** The root `.env` and `frontend/.env` are
+  ignored; only `.env.example` files are tracked. The CI secret-scan regex
+  (`sk-ant-`, `hf_`, `sk-proj-`, `AKIA`) must stay at zero hits on tracked
+  files.
+- **Frontend stack is fixed.** Vite + React + TypeScript + Tailwind v4. Do not
+  convert to Next.js or any other framework. The original plan's
+  `docs/stitch-mockup.html` is obsolete — the live `frontend/` scaffold
+  replaces it.
+- **Anthropic primary, Gemini optional.** The model selector in
+  `/api/complete` accepts `claude-opus-4 | gpt-5 | gemini-2`. Anthropic is the
+  default (mock mode offline); Gemini is retained because the FRONTEND drop
+  already shipped `@google/genai` — no additional work, just keep the path
+  usable.
+- **No raw PHI ever leaves the backend.** Only proxy text goes to any remote
+  provider. This is identical to the research invariant and must hold for
+  the product build.

@@ -43,3 +43,10 @@ experiments/results/cache/
 # logs
 *.log
 audit.jsonl
+
+# product build — frontend (node / Vite)
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env*
+!frontend/.env.example
