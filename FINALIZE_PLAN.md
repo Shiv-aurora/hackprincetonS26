@@ -238,6 +238,8 @@ shows privacy pill. `tsc --noEmit` → 0 errors. Both test suites still green.
 
 ## Step 4 — UX cleanup pass
 
+**Status:** DONE — 2026-04-18. ActivityBar tabs labelled (RECORDS/VITALS/PHARMACY active; LABS/CARDIOLOGY disabled). SideBar is three-state: RECORDS=explorer, VITALS=PrivacyStatsSidebar (session counters + DP budget), PHARMACY=SettingsSidebar (backend URL, model selector). Workspace has "What would have leaked" banner, renamed labels (Original/Safe Version), skeleton loading state. AssistantPanel has dp_tolerant consent gate (`dpAcknowledged` state, Send disabled until confirmed). Backend gained `POST /api/audit/reset`. `tsc --noEmit` → 0 errors. Both test suites green.
+
 **Goal:** Fix the gap between "Stitch mockup translated to code" and "actually usable demo product." Claude Code acts as product designer here.
 
 **CRITICAL INSTRUCTION TO CLAUDE CODE FOR THIS STEP:**

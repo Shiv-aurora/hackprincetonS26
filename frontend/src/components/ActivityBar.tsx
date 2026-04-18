@@ -1,4 +1,4 @@
-import { Stethoscope, Activity, HeartPulse, Pill, FlaskConical, Settings, UserRound } from 'lucide-react';
+import { Stethoscope, Activity, Pill, FlaskConical, HeartPulse, Settings, UserRound } from "lucide-react";
 
 interface ActivityBarProps {
   activeTab: string;
@@ -7,11 +7,11 @@ interface ActivityBarProps {
 
 export default function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
   const navItems = [
-    { id: 'RECORDS', icon: Stethoscope, label: 'Patient Records' },
-    { id: 'VITALS', icon: Activity, label: 'Analytics' },
-    { id: 'PHARMACY', icon: Pill, label: 'Pharmacy/Medications' },
-    { id: 'LABS', icon: FlaskConical, label: 'Laboratory' },
-    { id: 'CARDIOLOGY', icon: HeartPulse, label: 'Cardiology' },
+    { id: "RECORDS", icon: Stethoscope, label: "Document — View SAE narrative" },
+    { id: "VITALS", icon: Activity, label: "Privacy Stats — Session audit log" },
+    { id: "PHARMACY", icon: Pill, label: "Settings — API & model config" },
+    { id: "LABS", icon: FlaskConical, label: "Lab Results — Production feature" },
+    { id: "CARDIOLOGY", icon: HeartPulse, label: "Cardiology — Production feature" },
   ];
 
   return (
@@ -20,16 +20,20 @@ export default function ActivityBar({ activeTab, onTabChange }: ActivityBarProps
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
+          const isProduction = item.id === "LABS" || item.id === "CARDIOLOGY";
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
               title={item.label}
               className={`flex items-center justify-center w-full py-3 transition-opacity duration-150 relative ${
-                isActive 
-                  ? 'text-white opacity-100' 
-                  : 'text-[#858585] opacity-70 hover:opacity-100'
+                isActive
+                  ? "text-white opacity-100"
+                  : isProduction
+                  ? "text-[#858585] opacity-40 cursor-default"
+                  : "text-[#858585] opacity-70 hover:opacity-100"
               }`}
+              disabled={isProduction}
             >
               <Icon size={22} strokeWidth={1.5} />
               {isActive && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white opacity-30" />}
@@ -39,10 +43,19 @@ export default function ActivityBar({ activeTab, onTabChange }: ActivityBarProps
       </div>
 
       <div className="mt-auto w-full flex flex-col items-center gap-2 pb-2">
-        <button className="text-[#858585] opacity-70 hover:opacity-100 transition-opacity p-2">
+        <button
+          title="User profile"
+          className="text-[#858585] opacity-70 hover:opacity-100 transition-opacity p-2"
+        >
           <UserRound size={22} strokeWidth={1.5} />
         </button>
-        <button className="text-[#858585] opacity-70 hover:opacity-100 transition-opacity p-2">
+        <button
+          title="Settings"
+          onClick={() => onTabChange("PHARMACY")}
+          className={`opacity-70 hover:opacity-100 transition-opacity p-2 ${
+            activeTab === "PHARMACY" ? "text-white opacity-100" : "text-[#858585]"
+          }`}
+        >
           <Settings size={22} strokeWidth={1.5} />
         </button>
       </div>

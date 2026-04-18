@@ -456,6 +456,13 @@ async def api_complete(req: CompleteRequest) -> CompleteResponse:
     )
 
 
+@app.post("/api/audit/reset")
+async def api_audit_reset() -> dict:
+    # Clear the in-memory audit log; used by reset-demo.sh between demo runs.
+    _audit_log.clear()
+    return {"status": "ok", "message": "Audit log cleared."}
+
+
 @app.get("/api/audit", response_model=AuditResponse)
 async def api_audit() -> AuditResponse:
     # Return session-level stats and the full in-memory audit log.

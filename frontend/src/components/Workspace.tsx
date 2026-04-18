@@ -1,5 +1,5 @@
-import { RefreshCcw, X, FileText } from "lucide-react";
-import { useRef, useEffect, ReactNode } from "react";
+import { RefreshCcw, X, FileText, ShieldAlert, ChevronDown } from "lucide-react";
+import { useRef, useEffect, ReactNode, useState } from "react";
 import type { EntityItem, ProxyResponse } from "../lib/api";
 import { DEMO_DOCUMENT } from "../lib/demoDocument";
 
@@ -8,6 +8,7 @@ interface WorkspaceProps {
   onToggleSync: () => void;
   entities: EntityItem[];
   proxyData: ProxyResponse | null;
+  isLoading: boolean;
   hoveredPlaceholder: string | null;
   onHoverPlaceholder: (ph: string | null) => void;
 }
@@ -17,11 +18,14 @@ export default function Workspace({
   onToggleSync,
   entities,
   proxyData,
+  isLoading,
   hoveredPlaceholder,
   onHoverPlaceholder,
 }: WorkspaceProps) {
   const originalRef = useRef<HTMLDivElement>(null);
   const proxiedRef = useRef<HTMLDivElement>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [bannerExpanded, setBannerExpanded] = useState(false);
 
   useEffect(() => {
     if (!syncScroll) return;
@@ -44,16 +48,22 @@ export default function Workspace({
   const proxyText = proxyData?.proxy ?? "";
   const entityMap = proxyData?.entity_map ?? {};
 
+  const phiCount = entities.filter((e) => e.category === "phi").length;
+  const ipCount = entities.filter((e) => e.category === "ip").length;
+  const mnpiCount = entities.filter((e) => e.category === "mnpi").length;
+  const totalCount = entities.length;
+  const showBanner = !bannerDismissed && totalCount > 0;
+
   return (
     <section className="flex-1 flex flex-col min-w-0 bg-[#1e1e1e]">
       {/* Editor Tabs */}
-      <div className="h-9 flex bg-[#252526] overflow-x-auto no-scrollbar shrink-0 border-b border-vscode-border">
+      <div className="h-9 flex bg-[#252526] overflow-x-auto shrink-0 border-b border-vscode-border">
         <Tab name="SAE_Narrative_Draft_001.txt" active />
         <Tab name="patient_records.csv" />
         <Tab name="extraction_rules.json" />
       </div>
 
-      {/* Editor Breadcrumbs */}
+      {/* Breadcrumbs */}
       <div className="h-6 flex items-center px-4 bg-[#1e1e1e] text-[11px] text-[#969696] gap-1 shrink-0">
         <span className="hover:text-white cursor-pointer transition-colors">Sovereign_OS</span>
         <span className="text-[#969696]/50 select-none">&gt;</span>
@@ -64,7 +74,7 @@ export default function Workspace({
       <div className="h-9 border-b border-vscode-border flex items-center justify-between px-4 bg-[#1e1e1e] shrink-0">
         <div className="flex items-center gap-3">
           <span className="font-mono text-[11px] text-[#6a9955] uppercase font-bold tracking-tighter">
-            SOURCE_TEXT
+            Original
           </span>
           <div className="h-3 w-px bg-vscode-border" />
           <button
@@ -92,6 +102,55 @@ export default function Workspace({
         </div>
       </div>
 
+      {/* "What would have leaked" banner */}
+      {showBanner && (
+        <div className="shrink-0 border-b border-[#be1100]/30 bg-[#5a1d1d]/40">
+          <div className="flex items-center gap-2 px-4 py-1.5">
+            <ShieldAlert size={12} className="text-[#f48771] shrink-0" />
+            <span className="text-[11px] text-[#f48771] flex-1">
+              If you pasted this directly into ChatGPT:{" "}
+              <span className="text-phi font-bold">{phiCount} PHI</span>
+              <span className="text-[#858585]"> · </span>
+              <span className="text-ip font-bold">{ipCount} IP</span>
+              <span className="text-[#858585]"> · </span>
+              <span className="text-mnpi font-bold">{mnpiCount} MNPI</span>
+              <span className="text-[#858585]"> — {totalCount} items would be exposed.</span>
+            </span>
+            <button
+              onClick={() => setBannerExpanded(!bannerExpanded)}
+              className="text-[10px] text-[#858585] hover:text-[#cccccc] transition-colors flex items-center gap-0.5 shrink-0"
+            >
+              Details
+              <ChevronDown size={10} className={`transition-transform ${bannerExpanded ? "rotate-180" : ""}`} />
+            </button>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="text-[#858585] hover:text-[#cccccc] transition-colors shrink-0 ml-1"
+              title="Dismiss"
+            >
+              <X size={12} />
+            </button>
+          </div>
+          {bannerExpanded && (
+            <div className="px-4 pb-2 pt-0 text-[11px] text-[#858585] font-mono space-y-0.5">
+              {[
+                { tier: "phi", label: "PHI (HIPAA identifiers)", count: phiCount, color: "text-phi" },
+                { tier: "ip", label: "IP (compound codes, doses, timing)", count: ipCount, color: "text-ip" },
+                { tier: "mnpi", label: "MNPI (efficacy data, amendments)", count: mnpiCount, color: "text-mnpi" },
+              ].map(({ tier, label, count, color }) => (
+                count > 0 && (
+                  <div key={tier} className="flex items-center gap-2">
+                    <span className={`${color} font-bold w-4 text-right`}>{count}</span>
+                    <span>{label}</span>
+                  </div>
+                )
+              ))}
+              <p className="text-[#606060] pt-1">NGSP proxy mode active — identifiers replaced before any cloud transmission.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Document Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Original Text Pane */}
@@ -103,12 +162,17 @@ export default function Workspace({
             <Gutter lines={20} />
             <div className="flex-1 p-8">
               <div className="max-w-2xl">
-                <p className="text-[#cccccc] leading-loose">
-                  {renderHighlightedText(text, entities, hoveredPlaceholder, onHoverPlaceholder)}
-                </p>
-                {entities.length === 0 && (
-                  <p className="text-[#969696] text-[11px] mt-4">
-                    Loading entity analysis…
+                {isLoading ? (
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-3 bg-[#2d2d2d] rounded w-full" />
+                    <div className="h-3 bg-[#2d2d2d] rounded w-5/6" />
+                    <div className="h-3 bg-[#2d2d2d] rounded w-4/5" />
+                    <div className="h-3 bg-[#2d2d2d] rounded w-full" />
+                    <div className="h-3 bg-[#2d2d2d] rounded w-3/4" />
+                  </div>
+                ) : (
+                  <p className="text-[#cccccc] leading-loose">
+                    {renderHighlightedText(text, entities, hoveredPlaceholder, onHoverPlaceholder)}
                   </p>
                 )}
               </div>
@@ -116,24 +180,38 @@ export default function Workspace({
           </div>
         </div>
 
-        {/* Proxy Text Pane */}
+        {/* Safe Version (Proxy) Pane */}
         <div
           ref={proxiedRef}
           className="flex-1 overflow-y-auto bg-[#1e1e1e] font-mono text-[13px] border-l border-vscode-border"
         >
           <div className="flex min-h-full">
             <Gutter lines={20} />
-            <div className="flex-1 p-8">
-              <div className="max-w-2xl">
-                {proxyData ? (
-                  <p className="text-zinc-500 leading-loose">
-                    {renderProxyText(proxyText, entityMap, hoveredPlaceholder, onHoverPlaceholder)}
-                  </p>
-                ) : (
-                  <p className="text-[#969696] text-[11px]">
-                    Loading proxy…
-                  </p>
-                )}
+            <div className="flex-1">
+              {/* Proxy pane header */}
+              <div className="h-7 flex items-center px-4 border-b border-vscode-border/50 bg-[#252526]/50 shrink-0">
+                <span className="font-mono text-[10px] text-[#6a9955] uppercase font-bold tracking-tighter">
+                  Safe Version
+                </span>
+              </div>
+              <div className="p-8">
+                <div className="max-w-2xl">
+                  {isLoading ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-3 bg-[#2d2d2d] rounded w-full" />
+                      <div className="h-3 bg-[#2d2d2d] rounded w-4/5" />
+                      <div className="h-3 bg-[#2d2d2d] rounded w-5/6" />
+                      <div className="h-3 bg-[#2d2d2d] rounded w-3/4" />
+                      <div className="h-3 bg-[#2d2d2d] rounded w-full" />
+                    </div>
+                  ) : proxyData ? (
+                    <p className="text-zinc-500 leading-loose">
+                      {renderProxyText(proxyText, entityMap, hoveredPlaceholder, onHoverPlaceholder)}
+                    </p>
+                  ) : (
+                    <p className="text-[#969696] text-[11px]">Loading safe version…</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -182,7 +260,7 @@ function Tab({ name, active }: { name: string; active?: boolean }) {
 // Text renderers
 // ---------------------------------------------------------------------------
 
-// Split `text` into plain runs and highlighted entity spans; return React nodes.
+// Split `text` into plain runs and highlighted entity spans, returning React nodes.
 function renderHighlightedText(
   text: string,
   entities: EntityItem[],
@@ -209,9 +287,9 @@ function renderHighlightedText(
     nodes.push(
       <span
         key={entity.placeholder}
-        className={`cursor-pointer border-b border-current border-opacity-30 transition-all hover:bg-white/5 rounded-sm px-0.5 ${
+        className={`cursor-pointer border-b border-current border-opacity-40 transition-all hover:bg-white/5 rounded-sm px-0.5 ${
           isActive
-            ? "bg-vscode-selection/40 text-white border-white"
+            ? "bg-vscode-selection/40 !text-white border-white"
             : colorClass[entity.category] ?? "text-[#cccccc]"
         }`}
         onMouseEnter={() => onHover(entity.placeholder)}
@@ -225,13 +303,13 @@ function renderHighlightedText(
   }
 
   if (cursor < text.length) {
-    nodes.push(<span key={`plain-end`}>{text.slice(cursor)}</span>);
+    nodes.push(<span key="plain-end">{text.slice(cursor)}</span>);
   }
 
   return nodes;
 }
 
-// Split proxy text into plain runs and placeholder token spans; return React nodes.
+// Split proxy text at placeholder tokens and render them as styled badges.
 function renderProxyText(
   proxyText: string,
   entityMap: Record<string, string>,

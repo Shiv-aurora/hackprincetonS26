@@ -8,9 +8,11 @@ import {
   Sparkles,
   ChevronDown,
   AlertTriangle,
+  ShieldCheck,
+  Edit3,
 } from "lucide-react";
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import type { CompleteResponse } from "../lib/api";
+import type { CompleteResponse, RouteResponse } from "../lib/api";
 import { completeRequest } from "../lib/api";
 import { DEMO_DOCUMENT, DEMO_PROMPT } from "../lib/demoDocument";
 
@@ -23,23 +25,37 @@ interface Message {
 }
 
 interface AssistantPanelProps {
+  routeDecision: RouteResponse | null;
   onRequestComplete: () => void;
 }
 
-export default function AssistantPanel({ onRequestComplete }: AssistantPanelProps) {
+export default function AssistantPanel({
+  routeDecision,
+  onRequestComplete,
+}: AssistantPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState(DEMO_PROMPT);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // dp_tolerant acknowledgement: user must confirm before Send is enabled.
+  const [dpAcknowledged, setDpAcknowledged] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Reset acknowledgement each time input changes (new request needs fresh consent).
+  useEffect(() => {
+    setDpAcknowledged(false);
+  }, [inputValue]);
+
+  const isDpTolerant = routeDecision?.path === "dp_tolerant";
+  const sendEnabled = !isLoading && inputValue.trim().length > 0 && (!isDpTolerant || dpAcknowledged);
+
   async function handleSend() {
     const prompt = inputValue.trim();
-    if (!prompt || isLoading) return;
+    if (!sendEnabled || !prompt) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -49,6 +65,7 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
+    setDpAcknowledged(false);
     setIsLoading(true);
     setError(null);
 
@@ -100,7 +117,7 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
       {/* Header */}
       <div className="h-9 px-4 flex items-center justify-between bg-surface-container-low border-b border-vscode-border shrink-0">
         <span className="text-[11px] font-medium text-[#bbbbbb] uppercase tracking-wider">
-          Assistant
+          AI Assistant
         </span>
         <div className="flex items-center gap-1">
           <button className="text-[#858585] hover:text-[#cccccc] p-1">
@@ -108,7 +125,7 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
           </button>
           <button
             className="text-[#858585] hover:text-[#cccccc] p-1"
-            onClick={() => setMessages([])}
+            onClick={() => { setMessages([]); setError(null); }}
             title="Clear conversation"
           >
             <X size={14} />
@@ -141,8 +158,8 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2">
-                  <Bot size={12} className="text-tertiary" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Bot size={12} className="text-tertiary shrink-0" />
                   <span className="text-[11px] font-bold text-tertiary uppercase">
                     Claude_Clinical
                   </span>
@@ -158,7 +175,7 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
                     </span>
                   )}
                 </div>
-                <div className="text-[12px] text-[#cccccc] font-mono bg-[#1e1e1e] p-3 rounded border border-vscode-border whitespace-pre-wrap leading-relaxed">
+                <div className="text-[12px] text-[#cccccc] font-mono bg-[#1e1e1e] p-3 rounded border border-vscode-border whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
                   {msg.content}
                 </div>
                 <div className="flex gap-2">
@@ -181,7 +198,7 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
               <span className="text-[11px] font-bold text-tertiary uppercase">Claude_Clinical</span>
             </div>
             <div className="text-[12px] text-[#969696] font-mono bg-[#1e1e1e] p-3 rounded border border-vscode-border">
-              <span className="animate-pulse">Processing through privacy layer…</span>
+              <span className="animate-pulse">Routing through privacy layer…</span>
             </div>
           </div>
         )}
@@ -196,8 +213,34 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
         <div ref={messagesEndRef} />
       </div>
 
+      {/* dp_tolerant warning banner — shown when document requires DP routing */}
+      {isDpTolerant && !dpAcknowledged && inputValue.trim().length > 0 && (
+        <div className="shrink-0 mx-3 mb-2 p-3 bg-[#2d2400]/80 border border-mnpi/20 rounded-md">
+          <div className="flex items-start gap-2 mb-2.5">
+            <AlertTriangle size={12} className="text-mnpi shrink-0 mt-0.5" />
+            <p className="text-[11px] text-mnpi leading-relaxed">
+              This document contains MNPI that can't be fully abstracted. Proceed with differential-privacy protection?
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDpAcknowledged(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-mnpi/10 border border-mnpi/30 text-mnpi text-[10px] font-bold uppercase rounded hover:bg-mnpi/20 transition-colors"
+            >
+              <ShieldCheck size={11} /> Process with DP
+            </button>
+            <button
+              onClick={() => setInputValue("")}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-container-high border border-vscode-border text-[#858585] text-[10px] font-bold uppercase rounded hover:text-[#cccccc] transition-colors"
+            >
+              <Edit3 size={11} /> Edit request
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input Area */}
-      <div className="p-3 border-t border-vscode-border bg-surface-container-low">
+      <div className="p-3 border-t border-vscode-border bg-surface-container-low shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             <Sparkles size={12} className="text-tertiary" />
@@ -216,17 +259,21 @@ export default function AssistantPanel({ onRequestComplete }: AssistantPanelProp
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message Clinical Assistant… (⌘↵ to send)"
+            placeholder="Message AI Assistant… (⌘↵ to send)"
             disabled={isLoading}
             className="w-full bg-[#3c3c3c] border border-transparent rounded p-2 text-[12px] text-[#cccccc] focus:outline-none focus:border-[#454545] transition-all resize-none disabled:opacity-50"
             rows={3}
           />
-          <div className="absolute bottom-2 right-2 flex items-center gap-2">
+          <div className="absolute bottom-2 right-2">
             <button
               onClick={handleSend}
-              disabled={isLoading || !inputValue.trim()}
+              disabled={!sendEnabled}
               className="bg-surface-container-high text-[#cccccc] p-1 rounded hover:bg-[#454545] border border-vscode-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Send (⌘↵)"
+              title={
+                isDpTolerant && !dpAcknowledged
+                  ? "Confirm DP processing above first"
+                  : "Send (⌘↵)"
+              }
             >
               <ArrowUp size={14} />
             </button>

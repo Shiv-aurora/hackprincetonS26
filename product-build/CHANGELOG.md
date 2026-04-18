@@ -121,3 +121,17 @@ section per FINALIZE_PLAN step. The research code (`src/`, `tests/`,
   - `pytest -q` → `57 passed, 3 skipped` (unchanged).
   - `pytest backend/tests -q` → `27 passed` (unchanged).
 - Commit: `[step-3] frontend wired to backend (api client, dynamic workspace, chat, privacy pill)`.
+
+## 2026-04-18 — Step 4: UX cleanup pass
+
+- `frontend/src/components/ActivityBar.tsx`: replaced mystery icons with labelled tabs (RECORDS=Stethoscope, VITALS=Activity, PHARMACY=Pill). LABS/CARDIOLOGY tabs retained as disabled placeholders (opacity-40, "Production feature" tooltip). Bottom Settings button wires to PHARMACY tab. Rationale: every icon now has a clear function.
+- `frontend/src/components/SideBar.tsx`: three-state sidebar matching active tab. RECORDS tab is unchanged. VITALS tab shows `PrivacyStatsSidebar` — session counters (total requests, proxied, answered locally, blocked by canary), privacy guarantee text, and DP budget (ε = 3.0 cap, session spend, progress bar). PHARMACY tab shows `SettingsSidebar` — backend URL, mode (Mock/offline), model selector (Claude Opus 4 active; Gemini 2, GPT-5 optional), and `.env` setup hint. `FileItem` helper now uses `ElementType` from `react` instead of `React.ElementType` to avoid missing namespace error.
+- `frontend/src/components/Workspace.tsx`: renamed "SOURCE_TEXT" → "Original" and added "Safe Version" label to the proxy pane header. Added dismissable "What would have leaked" banner at top of document pane: ShieldAlert icon, PHI/IP/MNPI breakdown, expandable details with NGSP note. Added skeleton loading state (pulsing divs) while `isLoading` is true. Rationale: visceral pitch moment + cleaner label language.
+- `frontend/src/components/AssistantPanel.tsx`: renamed header to "AI Assistant". Added `dp_tolerant` UX: `dpAcknowledged` state, Send button disabled when `isDpTolerant && !dpAcknowledged`, warning banner with "Process with DP" and "Edit request" buttons (both-or-nothing — consent is per-request and resets on input change). Response div capped at `max-h-96 overflow-y-auto`. Rationale: required DP consent gate.
+- `backend/main.py`: added `POST /api/audit/reset` endpoint (clears in-memory audit log). Rationale: needed by `scripts/reset-demo.sh` in Step 5.
+- `frontend/tsconfig.json`: added `"types": ["vite/client"]` — already present from Step 2; confirmed still correct.
+- Validation:
+  - `tsc --noEmit` → 0 errors.
+  - `pytest -q` → `57 passed, 3 skipped` (unchanged).
+  - `pytest backend/tests -q` → `27 passed` (unchanged).
+- Commit: `[step-4] UX cleanup (activity bar labels, sidebar views, leaked-data banner, dp_tolerant gate)`.
