@@ -100,7 +100,7 @@ function RecordsSidebar({
           <div className="h-6 flex items-center px-2 hover:bg-white/[0.03] cursor-pointer select-none">
             <ChevronDown size={14} className="text-[#5f6871] mr-1 shrink-0" />
             <span className="text-[10px] font-semibold text-[#7a828b] uppercase tracking-widest">
-              Sovereign OS
+              Asclepius
             </span>
           </div>
 

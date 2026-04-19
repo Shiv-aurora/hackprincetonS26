@@ -1,9 +1,9 @@
 // Tests for CaseTimelineView: verifies causality badge, SVG rendering, and absence of raw narrative text.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import React from "react";
+import { render, screen, act, waitFor } from "@testing-library/react";
+import React, { useEffect } from "react";
 import CaseTimelineView from "./CaseTimelineView";
-import { ReviewerContextProvider } from "./ReviewerContext";
+import { ReviewerContextProvider, useReviewerContext } from "./ReviewerContext";
 import { TIMELINE_FIXTURE } from "./__fixtures__/timelineFixture";
 
 // Stub ResizeObserver which is not available in jsdom.
@@ -13,18 +13,20 @@ globalThis.ResizeObserver = class {
   disconnect() {}
 };
 
+// Helper component that seeds timeline data into context after mount.
+const TimelineSeed: React.FC = () => {
+  const { setTimelineData } = useReviewerContext();
+  useEffect(() => {
+    setTimelineData(TIMELINE_FIXTURE);
+  }, [setTimelineData]);
+  return null;
+};
+
 // Wraps the component in ReviewerContextProvider with pre-loaded timeline data.
 function renderWithTimelineData() {
-  // We need to inject pre-loaded data into context; use a helper wrapper that
-  // seeds the context after mount by calling internal setters via a child component.
-  const Seed: React.FC = () => {
-    const { setTimelineData } = require("./ReviewerContext").useReviewerContext();
-    React.useEffect(() => { setTimelineData(TIMELINE_FIXTURE); }, [setTimelineData]);
-    return null;
-  };
   return render(
     <ReviewerContextProvider>
-      <Seed />
+      <TimelineSeed />
       <CaseTimelineView paneSlot="main" persona="reviewer" />
     </ReviewerContextProvider>
   );
@@ -59,28 +61,35 @@ describe("CaseTimelineView", () => {
   it("renders an SVG element (D3 drew the chart)", async () => {
     renderWithTimelineData();
     await waitFor(() => {
-      expect(screen.getByRole("img", { hidden: true }) ?? document.querySelector("svg")).toBeTruthy();
+      const svg = document.querySelector("svg");
+      expect(svg).not.toBeNull();
     });
-    const svg = document.querySelector("svg");
-    expect(svg).not.toBeNull();
   });
 
-  it("does not expose raw narrative text in the DOM", async () => {
+  it("does not expose the audit_id in the rendered DOM", async () => {
     renderWithTimelineData();
-    // The fixture has audit_id "abc123"; no raw input narrative is in the fixture.
-    // Assert the synthetic rationale (not raw input) is the only text from causality.
     await waitFor(() => {
       expect(screen.getByTestId("causality-verdict")).toBeInTheDocument();
     });
-    // "abc123" (audit_id) should not be rendered anywhere.
+    // audit_id "abc123" must not appear in the rendered output.
     expect(document.body.textContent).not.toContain("abc123");
   });
 
   it("renders demographics fields from the fixture", async () => {
     renderWithTimelineData();
+    await act(async () => {
+      await Promise.resolve();
+    });
     await waitFor(() => {
       expect(screen.getByText("45-54")).toBeInTheDocument();
     });
     expect(screen.getByText("SITE-7")).toBeInTheDocument();
+  });
+
+  it("renders the causality rationale text", async () => {
+    renderWithTimelineData();
+    await waitFor(() => {
+      expect(screen.getByText(/Temporal relationship supports causality/i)).toBeInTheDocument();
+    });
   });
 });

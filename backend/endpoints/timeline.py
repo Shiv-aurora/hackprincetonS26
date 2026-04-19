@@ -47,7 +47,8 @@ _DOSE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*mg\b", re.IGNORECASE)
 _GRADE_RE = re.compile(r"\bGrade\s+([1-5])\b", re.IGNORECASE)
 _AGE_RE = re.compile(r"\b(\d{1,3})-year-old\b", re.IGNORECASE)
 _SEX_RE = re.compile(r"\b(male|female)\b", re.IGNORECASE)
-_SITE_RE = re.compile(r"\bSite\s+(\d+)\b", re.IGNORECASE)
+# Matches both "Site 9250" and "SITE-9250" formats common in clinical docs.
+_SITE_RE = re.compile(r"\bSITE[-\s](\d+)\b", re.IGNORECASE)
 
 
 # Map an age integer to an anonymised 10-year age band string.

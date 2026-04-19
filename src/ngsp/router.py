@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from data.schemas import SensitiveSpan
+from data.schemas import SensitiveSpan, SensitiveCategory
 
 RoutePath = Literal["abstract_extractable", "dp_tolerant", "local_only"]
 
@@ -53,6 +53,21 @@ def _summarize_spans(spans: list[SensitiveSpan]) -> str:
     return ", ".join(f"{cat}: {n}" for cat, n in sorted(by_cat.items()))
 
 
+# High-sensitivity clinical quasi-identifier categories that must not go through dp_tolerant.
+# These are structured short tokens that the DP decoder cannot suppress (verbatim leak ~75-100%).
+_HIGH_SENSITIVITY_CATEGORIES: frozenset[SensitiveCategory] = frozenset({
+    SensitiveCategory.COMPOUND_CODE,
+    SensitiveCategory.SITE_ID,
+    SensitiveCategory.INDICATION,
+    SensitiveCategory.EFFICACY_VALUE,
+})
+
+
+# Return True when the span profile contains clinical identifiers that the dp_tolerant path leaks.
+def _has_high_sensitivity_spans(spans: list[SensitiveSpan]) -> bool:
+    return any(sp.category in _HIGH_SENSITIVITY_CATEGORIES for sp in spans)
+
+
 # Parse the Gemma routing response into a RouteDecision; fall back to dp_tolerant on error.
 def _parse_routing_response(raw: str) -> RouteDecision:
     valid: set[RoutePath] = {"abstract_extractable", "dp_tolerant", "local_only"}
@@ -83,4 +98,19 @@ def route(
         raw = local_model.generate(prompt, max_tokens=256, temperature=0.0)
     except Exception:
         return RouteDecision(path="dp_tolerant", rationale="Routing fallback: model error.")
-    return _parse_routing_response(raw)
+    decision = _parse_routing_response(raw)
+
+    # Override: if the model chose dp_tolerant but the span profile contains high-sensitivity
+    # clinical quasi-identifiers (compound codes, site IDs, indications, efficacy values),
+    # force abstract_extractable. The dp_tolerant path's DP noise does not propagate to the
+    # text surface, so those tokens would pass through verbatim at 75-100% leak rates.
+    if decision.path == "dp_tolerant" and _has_high_sensitivity_spans(spans):
+        return RouteDecision(
+            path="abstract_extractable",
+            rationale=(
+                f"Override: dp_tolerant path leaks structured clinical identifiers verbatim; "
+                f"forcing abstract_extractable. Original rationale: {decision.rationale}"
+            ),
+        )
+
+    return decision

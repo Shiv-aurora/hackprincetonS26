@@ -7,7 +7,7 @@ import { GridRows } from "@visx/grid";
 import { scaleLinear, scaleBand, scaleOrdinal } from "@visx/scale";
 import { HeatmapRect } from "@visx/heatmap";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
-import { curveMonotoneX } from "d3-shape";
+import { curveMonotoneX } from "d3";
 import type { ChartSpec, ChartSeries, DashboardSpec } from "./types";
 
 // ---------------------------------------------------------------------------

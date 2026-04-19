@@ -1,10 +1,12 @@
 // ActivityBar: vertical icon strip on the left edge — VITALS and RECORDS switch personas.
-import { Stethoscope, Activity, Pill, FlaskConical, HeartPulse, Settings, UserRound } from "lucide-react";
+import { Stethoscope, Activity, Pill, FlaskConical, HeartPulse, Settings, UserRound, LogOut } from "lucide-react";
 import { useLayoutState } from "../layout/useLayoutState";
+import { useAuth } from "../lib/auth";
 
 // Renders the 48 px activity bar with persona switchers and disabled production icons.
 export default function ActivityBar() {
   const { persona, setPersona } = useLayoutState();
+  const { user, signOut } = useAuth();
 
   // Nav items: id maps to persona where applicable; others are disabled production features.
   const navItems = [
@@ -82,12 +84,22 @@ export default function ActivityBar() {
 
       <div className="mt-auto flex w-full flex-col items-center gap-2 pb-2">
         <button
-          title="User profile"
+          title={user ? `Signed in as ${user.email}` : "User profile"}
           className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"
           aria-label="User profile"
         >
           <UserRound size={21} strokeWidth={1.5} />
         </button>
+        {user && (
+          <button
+            title="Sign out"
+            onClick={() => signOut()}
+            className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#f48771]"
+            aria-label="Sign out"
+          >
+            <LogOut size={18} strokeWidth={1.5} />
+          </button>
+        )}
         <button
           title="Settings"
           className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"

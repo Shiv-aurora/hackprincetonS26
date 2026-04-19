@@ -3,6 +3,7 @@ import React, { useRef, useCallback } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { BottomDockForensic } from "./BottomDockForensic";
 import { useForensicStream } from "../hooks/useForensicStream";
+import type { AuditEntry } from "../hooks/useForensicStream";
 
 interface BottomDockProps {
   expanded: boolean;
@@ -53,7 +54,7 @@ const DragHandle: React.FC<{
 const ExpandedDock: React.FC<{
   heightPct: number;
   onResize: (pct: number) => void;
-  entries: import("../hooks/useForensicStream").AuditEntry[];
+  entries: AuditEntry[];
   epsilonSpent: number;
   epsilonCap: number;
 }> = ({ heightPct, onResize, entries, epsilonSpent, epsilonCap }) => {

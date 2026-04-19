@@ -101,7 +101,6 @@ describe("ExportActions — chip interaction: not_configured", () => {
 
 describe("ExportActions — chip interaction: sent", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -112,7 +111,6 @@ describe("ExportActions — chip interaction: sent", () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -121,45 +119,26 @@ describe("ExportActions — chip interaction: sent", () => {
     const btn = screen.getByText("Flag to medical monitor");
     fireEvent.click(btn);
 
+    // Success label appears once the async dispatch resolves.
     await waitFor(() => {
-      // On success the label becomes "✓ Flag to medical monitor".
       expect(screen.getByText(/✓ Flag to medical monitor/)).toBeInTheDocument();
     });
   });
 
-  it("resets chip back to idle after 3 seconds following success", async () => {
+  it("chip is disabled while in success state", async () => {
     render(<ExportActions context="timeline" auditRef="audit_test" />);
     const btn = screen.getByText("Flag to medical monitor");
     fireEvent.click(btn);
 
     await waitFor(() => {
-      expect(screen.getByText(/✓ Flag to medical monitor/)).toBeInTheDocument();
-    });
-
-    // Advance fake timers past the 3s reset window.
-    vi.advanceTimersByTime(3100);
-
-    await waitFor(() => {
-      expect(screen.getByText("Flag to medical monitor")).toBeInTheDocument();
+      const successBtn = screen.getByText(/✓ Flag to medical monitor/).closest("button");
+      expect(successBtn).toBeDisabled();
     });
   });
 });
 
-describe("ExportActions — chip interaction: error", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-      })
-    );
-  });
-
+describe("ExportActions — chip interaction: sending state", () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 

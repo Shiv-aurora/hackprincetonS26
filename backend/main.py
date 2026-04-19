@@ -59,9 +59,14 @@ load_dotenv()
 
 _API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "sk-ant-mock")
 _MOCK_MODE: bool = _API_KEY == "sk-ant-mock" or not _API_KEY.startswith("sk-ant-")
+_OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 _VERSION = "0.1.0"
 _EPSILON_CAP = 3.0
 _DELTA = 1e-5
+
+# Canary token pattern — any string matching this in a proxy payload is a leak and must be blocked.
+_CANARY_PATTERN = re.compile(r"CANARY_[A-Za-z0-9]+")
+_CANARY_TOKENS: list[str] = []  # populated at runtime by test injections; also matched by regex
 
 # Path to the NGSP file-based audit log (canonical source of truth).
 _AUDIT_LOG_PATH = Path("experiments/results/audit.jsonl")
@@ -383,6 +388,48 @@ def _heuristic_route(all_entries: list[tuple[int, int, str, str, str]]) -> tuple
 # ---------------------------------------------------------------------------
 
 # Build a realistic mock ICH E2B response referencing actual entity placeholders.
+# Call the cloud LLM: try Anthropic first; fall back to OpenAI gpt-4o-mini on credit/auth errors.
+def _call_llm(prompt: str, system: str) -> str:
+    # --- Anthropic path ---
+    if _API_KEY and _API_KEY != "sk-ant-mock" and _API_KEY.startswith("sk-ant-"):
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=_API_KEY)
+            msg = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                system=system,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return msg.content[0].text  # type: ignore[union-attr]
+        except Exception as exc:
+            err_str = str(exc).lower()
+            # Fall through to OpenAI only on billing/credit errors; re-raise others.
+            if not any(kw in err_str for kw in ("credit", "balance", "billing", "quota", "insufficient")):
+                return f"[Anthropic error: {type(exc).__name__}: {exc}]"
+            # Credit exhausted — try OpenAI fallback.
+
+    # --- OpenAI fallback ---
+    if _OPENAI_API_KEY:
+        try:
+            from openai import OpenAI
+            oa = OpenAI(api_key=_OPENAI_API_KEY)
+            resp = oa.chat.completions.create(
+                model="gpt-4o-mini",
+                max_tokens=1024,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            return resp.choices[0].message.content or ""
+        except Exception as exc:
+            return f"[OpenAI error: {type(exc).__name__}: {exc}]"
+
+    return "[No LLM configured: set ANTHROPIC_API_KEY or OPENAI_API_KEY]"
+
+
+# Build a realistic mock ICH E2B response referencing actual entity placeholders.
 def _build_mock_response(entity_map: dict[str, str]) -> str:
     def get_ph(prefix: str, n: int = 1) -> str:
         """Return the nth placeholder for a category prefix (1-indexed, sorted by number)."""
@@ -511,35 +558,54 @@ async def api_complete(req: CompleteRequest) -> CompleteResponse:
     entities_count = len(entity_map)
     audit_id = uuid.uuid4().hex
 
+    # Canary scan — abort before any outbound call if a canary token survived proxying.
+    canary_match = _CANARY_PATTERN.search(proxy_text)
+    if canary_match:
+        entry = AuditLogEntry(
+            audit_id=audit_id,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            route=route_path,
+            entities_count=entities_count,
+            blocked=True,
+        )
+        record: dict[str, Any] = {
+            "request_id": audit_id,
+            "timestamp": entry.timestamp,
+            "kind": "complete",
+            "route": route_path,
+            "entities_count": entities_count,
+            "status": "canary_leak",
+            "canary_token": canary_match.group(0),
+        }
+        _append_audit(entry, record)
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "canary_leak",
+                "message": "Canary token detected in proxy text — outbound call blocked.",
+                "audit_id": audit_id,
+            },
+        )
+
     # Determine response (mock or real API).
+    response_raw: str
     if _MOCK_MODE:
         response_raw = _build_mock_response(entity_map)
         response_rehydrated = apply_entity_map(response_raw, entity_map)
     else:
-        try:
-            import anthropic  # lazy import — not needed in mock mode
-
-            client = anthropic.Anthropic(api_key=_API_KEY)
-            full_prompt = (
-                f"Document (privacy tokens used in place of sensitive identifiers):\n"
-                f"{proxy_text}\n\n"
-                f"Task: {req.prompt}"
-            )
-            msg = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1024,
-                system=(
-                    "You are a clinical trial assistant. The document uses privacy tokens "
-                    "(e.g. <COMPOUND_CODE_1>) in place of sensitive identifiers. "
-                    "Respond using the same token notation — do not invent values."
-                ),
-                messages=[{"role": "user", "content": full_prompt}],
-            )
-            response_raw = msg.content[0].text  # type: ignore[union-attr]
-            response_rehydrated = apply_entity_map(response_raw, entity_map)
-        except Exception as exc:  # noqa: BLE001
-            response_raw = f"[API error: {type(exc).__name__}]"
-            response_rehydrated = response_raw
+        full_prompt = (
+            f"Document (privacy tokens used in place of sensitive identifiers):\n"
+            f"{proxy_text}\n\n"
+            f"Task: {req.prompt}"
+        )
+        system_msg = (
+            "You are a clinical trial assistant. The document uses privacy tokens "
+            "(e.g. <COMPOUND_CODE_1>) in place of sensitive identifiers. "
+            "Respond using the same token notation — do not invent values."
+        )
+        response_raw = _call_llm(full_prompt, system_msg)
+        response_rehydrated = apply_entity_map(response_raw, entity_map)
 
     # Build audit entry and write to file + cache.
     entry = AuditLogEntry(
@@ -549,7 +615,7 @@ async def api_complete(req: CompleteRequest) -> CompleteResponse:
         entities_count=entities_count,
         blocked=False,
     )
-    record: dict[str, Any] = {
+    record = {
         "request_id": audit_id,
         "timestamp": entry.timestamp,
         "kind": "complete",

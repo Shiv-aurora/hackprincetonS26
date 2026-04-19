@@ -1,5 +1,5 @@
 // Manages dataset query state including filter, sort, and cursor-based pagination.
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type {
   DatasetSchemaResponse,
   DatasetRow,
@@ -24,7 +24,7 @@ export interface UseDatasetQueryResult {
   hasNextPage: boolean;
 }
 
-// Fetches dataset schema from /api/dataset/schema and returns it or null on error.
+// Fetches dataset schema from /api/dataset/schema and returns it or throws on error.
 async function fetchSchema(): Promise<DatasetSchemaResponse> {
   const resp = await fetch(`${BASE_URL}/api/dataset/schema`);
   if (!resp.ok) throw new Error(`schema: ${resp.status}`);
@@ -105,6 +105,19 @@ function mockQuery(cursor: string | null): DatasetQueryResponse {
   };
 }
 
+// Runs a query (real or mock) and returns the response.
+async function runQuery(
+  filters: Record<string, string>,
+  sort: [string, "asc" | "desc"][],
+  cursor: string | null
+): Promise<DatasetQueryResponse> {
+  try {
+    return await postQuery(filters, sort, cursor);
+  } catch {
+    return mockQuery(cursor);
+  }
+}
+
 // Hook: manages dataset schema fetch, query pagination, filter, and sort state.
 export function useDatasetQuery(): UseDatasetQueryResult {
   const [schema, setSchema] = useState<DatasetSchemaResponse | null>(null);
@@ -112,12 +125,11 @@ export function useDatasetQuery(): UseDatasetQueryResult {
   const [totalMatched, setTotalMatched] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFiltersState] = useState<Record<string, string>>({});
   const [sort, setSortState] = useState<[string, "asc" | "desc"][]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
+  // nextCursor: the cursor to use for the *next* fetchNextPage call.
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
-  // Track whether we are appending (next page) vs replacing (new filter/sort).
-  const appendRef = useRef(false);
 
   // Fetches schema once on mount, falling back to mock data if backend is down.
   useEffect(() => {
@@ -126,45 +138,32 @@ export function useDatasetQuery(): UseDatasetQueryResult {
       .catch(() => setSchema(mockSchema()));
   }, []);
 
-  // Re-fetches the first page whenever filters or sort change.
-  useEffect(() => {
-    appendRef.current = false;
-    setCursor(null);
-    setRows([]);
-    setHasNextPage(false);
-  }, [filters, sort]);
-
-  // Runs query whenever cursor changes (including reset to null).
+  // Fetches the first page whenever schema, filters, or sort changes.
   useEffect(() => {
     if (schema === null) return;
     setLoading(true);
     setError(null);
-    const isAppend = appendRef.current;
-    postQuery(filters, sort, cursor)
+    setRows([]);
+    setNextCursor(null);
+    setHasNextPage(false);
+
+    runQuery(filters, sort, null)
       .then((data) => {
-        setRows((prev) => (isAppend ? [...prev, ...data.rows] : data.rows));
+        setRows(data.rows);
         setTotalMatched(data.total_matched);
         setHasNextPage(data.next_cursor !== null);
-        setCursor(data.next_cursor);
+        setNextCursor(data.next_cursor);
       })
-      .catch(() => {
-        // Fall back to mock data when backend is unreachable.
-        const data = mockQuery(cursor);
-        setRows((prev) => (isAppend ? [...prev, ...data.rows] : data.rows));
-        setTotalMatched(data.total_matched);
-        setHasNextPage(data.next_cursor !== null);
-        setCursor(data.next_cursor);
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Query failed");
       })
-      .finally(() => {
-        setLoading(false);
-        appendRef.current = false;
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- cursor intentionally omitted: reset above
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- schema intentionally included only for initial trigger
   }, [schema, filters, sort]);
 
-  // Updates a single column filter, resetting pagination.
+  // Updates a single column filter value, resetting pagination implicitly via the above effect.
   const setFilter = useCallback((col: string, val: string) => {
-    setFilters((prev) => {
+    setFiltersState((prev) => {
       if (val === "") {
         const next = { ...prev };
         delete next[col];
@@ -174,7 +173,7 @@ export function useDatasetQuery(): UseDatasetQueryResult {
     });
   }, []);
 
-  // Cycles sort for a column: none → asc → desc → none.
+  // Cycles sort for a given column: none → asc → desc → none.
   const setSort = useCallback((col: string) => {
     setSortState((prev) => {
       const existing = prev.find(([c]) => c === col);
@@ -184,30 +183,23 @@ export function useDatasetQuery(): UseDatasetQueryResult {
     });
   }, []);
 
-  // Appends the next cursor page of results.
+  // Appends the next cursor page of results to the existing row list.
   const fetchNextPage = useCallback(() => {
-    if (!hasNextPage || loading) return;
-    appendRef.current = true;
-    // Trigger a re-fetch by updating cursor to the stored next cursor value.
-    // The cursor is already set to the next cursor from the previous response.
-    // We need to re-trigger the effect; use a dummy state toggle approach.
+    if (!hasNextPage || loading || nextCursor === null) return;
     setLoading(true);
-    postQuery(filters, sort, cursor)
+
+    runQuery(filters, sort, nextCursor)
       .then((data) => {
         setRows((prev) => [...prev, ...data.rows]);
         setTotalMatched(data.total_matched);
         setHasNextPage(data.next_cursor !== null);
-        setCursor(data.next_cursor);
+        setNextCursor(data.next_cursor);
       })
-      .catch(() => {
-        const data = mockQuery(cursor);
-        setRows((prev) => [...prev, ...data.rows]);
-        setTotalMatched(data.total_matched);
-        setHasNextPage(data.next_cursor !== null);
-        setCursor(data.next_cursor);
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Query failed");
       })
       .finally(() => setLoading(false));
-  }, [hasNextPage, loading, filters, sort, cursor]);
+  }, [hasNextPage, loading, nextCursor, filters, sort]);
 
   return {
     schema,

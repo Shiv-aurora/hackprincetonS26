@@ -31,7 +31,10 @@ _PAT_ZIP = re.compile(r"\b\d{5}(?:-\d{4})?\b")
 _PAT_DATE = re.compile(
     r"\b(?:0?[1-9]|1[0-2])[/\-](?:0?[1-9]|[12]\d|3[01])[/\-]\d{2,4}\b"
     r"|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s,]+\d{1,2}[\s,]+\d{4}\b"
-    r"|\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b",
+    r"|\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b"
+    # DD-MON-YYYY (07-DEC-2026) and MON-YYYY (MAY-2023) formats common in clinical docs.
+    r"|\b(?:0?[1-9]|[12]\d|3[01])-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{4}\b"
+    r"|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{4}\b",
     re.IGNORECASE,
 )
 _PAT_ACCOUNT = re.compile(r"\b(?:Acct|Account)\s*[#:]?\s*([A-Z0-9\-]{4,16})\b", re.IGNORECASE)
@@ -39,6 +42,38 @@ _PAT_CERT = re.compile(r"\b(?:Cert|License|Lic)\s*[#:]?\s*([A-Z0-9\-]{4,16})\b",
 _PAT_VEHICLE = re.compile(r"\bVIN[:\s]*([A-HJ-NPR-Z0-9]{17})\b", re.IGNORECASE)
 _PAT_DEVICE = re.compile(r"\bDEV[:\s#]*([A-Z0-9\-]{4,16})\b", re.IGNORECASE)
 _PAT_HEALTH_PLAN = re.compile(r"\bHPBN?[:\s#]*([A-Z0-9\-]{6,14})\b", re.IGNORECASE)
+
+# ---------------------------------------------------------------------------
+# Clinical-trial quasi-identifier patterns (not in HIPAA 18 but leak at 75-100%
+# in verbatim attacks; added after attack-suite results showed systematic leakage).
+# ---------------------------------------------------------------------------
+
+# Site identifiers: SITE-01, SITE-3, CTR-7, CENTER-12 etc.
+_PAT_SITE_ID = re.compile(
+    r"\b(?:SITE|CTR|CENTER|CLINIC|CRO)[-_]?\s*\d{1,4}\b",
+    re.IGNORECASE,
+)
+
+# Compound / drug codes: SYN-XXXX, XZP-XXXX-Nb-NNN, COMP-XXX, NCT-prefixed codes.
+# Negative lookahead excludes month abbreviations (MAY-2023) and subject-ID prefix PT.
+_MONTH_ABBR = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+_PAT_COMPOUND_CODE = re.compile(
+    rf"\b(?!{_MONTH_ABBR}[-_]\d{{4}}\b)(?!PT[-_])(?:[A-Z]{{2,6}}[-_]\d{{3,6}}(?:[-_]\d+[a-z][-_]\d+)?)\b"
+    r"|\bNCT\d{8}\b",
+    re.IGNORECASE,
+)
+
+# Clinical dose values: 25mg, 100 mg, 2.5 mg/kg, 1000IU, 0.5mL.
+_PAT_DOSE = re.compile(
+    r"\b\d+(?:\.\d+)?\s*(?:mg(?:/kg)?|mcg|μg|IU|mL|g)\b",
+    re.IGNORECASE,
+)
+
+# AE grade annotations: Grade 3, CTCAE grade 2, Grade IV.
+_PAT_AE_GRADE = re.compile(
+    r"\bgrade\s+(?:[1-5]|[IVX]{1,4})\b",
+    re.IGNORECASE,
+)
 
 _REGEX_RULES: list[tuple[re.Pattern[str], SensitiveCategory]] = [
     (_PAT_FAX, SensitiveCategory.FAX),  # fax before phone (fax pattern is more specific)
@@ -55,6 +90,12 @@ _REGEX_RULES: list[tuple[re.Pattern[str], SensitiveCategory]] = [
     (_PAT_VEHICLE, SensitiveCategory.VEHICLE_ID),
     (_PAT_DEVICE, SensitiveCategory.DEVICE_ID),
     (_PAT_HEALTH_PLAN, SensitiveCategory.HEALTH_PLAN_BENEFICIARY),
+    # Clinical quasi-identifiers — SITE_ID before COMPOUND_CODE so "SITE-9250" isn't
+    # consumed by the broader compound-code pattern first.
+    (_PAT_SITE_ID, SensitiveCategory.SITE_ID),
+    (_PAT_COMPOUND_CODE, SensitiveCategory.COMPOUND_CODE),
+    (_PAT_DOSE, SensitiveCategory.DOSE),
+    (_PAT_AE_GRADE, SensitiveCategory.AE_GRADE),
 ]
 
 

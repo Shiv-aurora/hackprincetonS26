@@ -37,7 +37,7 @@ export default function TitleBar({
             <Layout size={13} />
           </div>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold tracking-[0.02em] text-white">Sovereign OS</div>
+            <div className="text-[12px] font-semibold tracking-[0.02em] text-white">Asclepius</div>
             <div className="truncate text-[10.5px] text-[#6d7680]">{displayLabel}</div>
           </div>
         </div>

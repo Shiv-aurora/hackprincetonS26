@@ -85,9 +85,14 @@ function drawSignalMap(
   const g = root.append("g").attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
 
   // ── Convex hull polygons ──────────────────────────────────────────────────
+  // Hull coordinates are [day, site_ordinal_index] from the API — map through both scales.
   clusters.forEach((cluster, idx) => {
     if (cluster.hull.length < 3) return;
-    const hullPoints: [number, number][] = cluster.hull.map(([hx, hy]) => [xScale(hx), yScale(hy) ?? 0]);
+    const hullPoints: [number, number][] = cluster.hull.map(([hDay, hSiteIdx]) => {
+      // Map from [day, site_index] domain to pixel coordinates.
+      const siteAtIdx = sites[Math.round(hSiteIdx)] ?? sites[0];
+      return [xScale(hDay), yScale(siteAtIdx) ?? 0];
+    });
     const hull = d3.polygonHull(hullPoints);
     if (!hull) return;
     g.append("polygon")
@@ -125,10 +130,11 @@ function drawSignalMap(
       .attr("stroke-width", 1)
       .attr("cursor", "pointer")
       .attr("data-testid", `event-circle-${ev.case_id_placeholder}`)
-      .on("mouseenter", (event: MouseEvent) => {
+      .on("mouseenter", (event: Event) => {
+        const me = event as MouseEvent;
         onTooltip({
-          x: (event.offsetX ?? 0) + MARGIN.left,
-          y: (event.offsetY ?? 0) + MARGIN.top,
+          x: (me.offsetX ?? 0) + MARGIN.left,
+          y: (me.offsetY ?? 0) + MARGIN.top,
           site: ev.site,
           day: ev.day,
           grade: ev.grade,
@@ -170,6 +176,9 @@ const SignalMapView: React.FC<ViewProps> = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
+  // Stable wrapper around setTooltip to match the (TooltipState | null) => void signature.
+  const handleTooltip = (tt: TooltipState | null) => setTooltip(tt);
+
   // Draws (or redraws) the chart whenever data or container dimensions change.
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
@@ -177,8 +186,8 @@ const SignalMapView: React.FC<ViewProps> = () => {
     // Left panel is 70% of total container width.
     const chartWidth = (rect.width * 0.7) || 400;
     const chartHeight = (rect.height - 48) || 300;
-    drawSignalMap(svgRef.current, data, chartWidth, chartHeight, setTooltip);
-  }, [data]);
+    drawSignalMap(svgRef.current, data, chartWidth, chartHeight, handleTooltip);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-render chart on container resize.
   useEffect(() => {
@@ -189,11 +198,11 @@ const SignalMapView: React.FC<ViewProps> = () => {
       const rect = containerRef.current.getBoundingClientRect();
       const chartWidth = (rect.width * 0.7) || 400;
       const chartHeight = (rect.height - 48) || 300;
-      drawSignalMap(svgRef.current, data, chartWidth, chartHeight, setTooltip);
+      drawSignalMap(svgRef.current, data, chartWidth, chartHeight, handleTooltip);
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [data]);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const outerStyle: React.CSSProperties = {
     display: "flex",

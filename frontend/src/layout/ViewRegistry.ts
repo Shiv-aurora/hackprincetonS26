@@ -43,7 +43,7 @@ export const VIEW_REGISTRY: Record<ViewId, ViewDefinition> = {
   "dataset-preview": {
     id: "dataset-preview",
     title: "Dataset",
-    component: DatasetPreviewPlaceholder,
+    component: DatasetPreviewView,
     validPanes: ["left", "main"],
     backendDeps: ["/api/dataset/query"],
   },
@@ -57,7 +57,7 @@ export const VIEW_REGISTRY: Record<ViewId, ViewDefinition> = {
   "dashboard": {
     id: "dashboard",
     title: "Dashboard",
-    component: DashboardPlaceholder,
+    component: DashboardView,
     validPanes: ["main", "right"],
     backendDeps: ["/api/dashboard/generate"],
   },

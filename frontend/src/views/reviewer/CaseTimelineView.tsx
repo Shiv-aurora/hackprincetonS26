@@ -97,18 +97,23 @@ function drawTimeline({ svg, data, width }: DrawTimelineProps): void {
   const g = root.append("g").attr("transform", `translate(${MARGIN_LEFT},0)`);
 
   // ── Track labels ────────────────────────────────────────────────────────────
-  const labelStyle = (sel: d3.Selection<SVGTextElement, unknown, null, undefined>) =>
-    sel
+  // Applies consistent styling to a track label text element.
+  function applyLabelStyle(
+    // d3.BaseType used so this accepts both null-parent and g-parent selections.
+    sel: d3.Selection<SVGTextElement, unknown, d3.BaseType, unknown>
+  ): d3.Selection<SVGTextElement, unknown, d3.BaseType, unknown> {
+    return sel
       .attr("x", -6)
       .attr("text-anchor", "end")
       .attr("font-size", "10px")
       .attr("fill", "#6b7480")
       .attr("font-family", "var(--font-mono, monospace)");
+  }
 
-  g.append("text").call(labelStyle).attr("y", yEvent + TRACK_HEIGHT_EVENT / 2 + 4).text("EVENT");
-  g.append("text").call(labelStyle).attr("y", yDosing + TRACK_HEIGHT_DOSING / 2 + 4).text("DOSING");
-  g.append("text").call(labelStyle).attr("y", yConmeds + TRACK_HEIGHT_CONMEDS / 2 + 4).text("CONMEDS");
-  g.append("text").call(labelStyle).attr("y", yLabs + TRACK_HEIGHT_LABS / 2 + 4).text("LABS");
+  applyLabelStyle(g.append("text")).attr("y", yEvent + TRACK_HEIGHT_EVENT / 2 + 4).text("EVENT");
+  applyLabelStyle(g.append("text")).attr("y", yDosing + TRACK_HEIGHT_DOSING / 2 + 4).text("DOSING");
+  applyLabelStyle(g.append("text")).attr("y", yConmeds + TRACK_HEIGHT_CONMEDS / 2 + 4).text("CONMEDS");
+  applyLabelStyle(g.append("text")).attr("y", yLabs + TRACK_HEIGHT_LABS / 2 + 4).text("LABS");
 
   // ── Track background bands ───────────────────────────────────────────────
   const trackBg = (y: number, h: number) =>

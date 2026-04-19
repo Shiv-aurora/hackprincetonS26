@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { CompleteResponse, RouteResponse } from "../lib/api";
 import { completeRequest } from "../lib/api";
 import { DEMO_FILES, MODEL_LABELS, type ModelId } from "../lib/demoDocument";
+import { insertActivity } from "../lib/supabase";
 
 interface Message {
   id: string;
@@ -160,6 +161,15 @@ export default function AssistantPanel({
       };
       setMessages((prev) => [...prev, assistantMsg]);
       onRequestComplete();
+      // Persist to Supabase activity history; no-ops if user is not signed in.
+      insertActivity({
+        prompt,
+        response: result.response_rehydrated,
+        proxy_sent: result.proxy_sent,
+        routing_path: result.routing.path,
+        entities_proxied: result.entities_proxied,
+        audit_id: result.audit_id,
+      });
     } catch {
       setError("AI agent failed to respond.");
     } finally {

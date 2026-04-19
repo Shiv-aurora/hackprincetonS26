@@ -131,11 +131,21 @@ async def cluster_signal(
     # Filter events to window and convert to typed records (no raw IDs to cloud).
     filtered = [ev for ev in _SYNTHETIC_EVENTS if ev["day"] <= req.window_days]
 
-    # Find current case (fallback to last event in window).
+    # Find current case; if not in fixture, inject it so the map shows the right position.
     current_ev = next(
         (ev for ev in filtered if ev["case_id"] == req.current_case_id),
-        filtered[-1] if filtered else _SYNTHETIC_EVENTS[0],
+        None,
     )
+    if current_ev is None:
+        # Case not in seeded fixture — synthesize a plausible position from the case_id.
+        site_num = int(req.current_case_id.split("-")[1]) % 5 + 1 if "-" in req.current_case_id else 1
+        current_ev = {
+            "case_id": req.current_case_id,
+            "site": f"SITE-{site_num}",
+            "day": min(req.window_days, 14),
+            "grade": 4,
+        }
+        filtered.append(current_ev)
 
     # Build typed event list with placeholder IDs only.
     signal_events = [

@@ -94,13 +94,13 @@ export const DatasetPreviewView: React.FC<ViewProps> = () => {
     if (filterCol) setFilter(filterCol, filterVal);
   }, [filterCol, filterVal, setFilter]);
 
-  // Build TanStack Table column definitions from the schema.
-  const columnHelper = createColumnHelper<DatasetRow>();
+  // Build TanStack Table column definitions from the schema (memoized per schema).
   const columns = useMemo<ColumnDef<DatasetRow, DatasetCell>[]>(() => {
     if (!schema) return [];
+    const helper = createColumnHelper<DatasetRow>();
     return schema.columns.map((col) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- columnHelper type variance
-      (columnHelper.accessor as any)(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function accessor has type variance with the helper's inferred row key type
+      (helper.accessor as any)(
         (row: DatasetRow) => row.cells[col.name] ?? { value: null },
         {
           id: col.name,
@@ -109,7 +109,7 @@ export const DatasetPreviewView: React.FC<ViewProps> = () => {
         }
       )
     );
-  }, [schema, columnHelper]);
+  }, [schema]);
 
   const table = useReactTable({
     data: rows,
