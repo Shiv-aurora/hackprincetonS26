@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 
 from backend.deps import get_budget, get_pipeline
+from backend.openai_demo import call_openai, openai_configured
 from backend.schemas import (
     SignalCluster,
     SignalEvent,
@@ -181,8 +182,19 @@ async def cluster_signal(
     )
 
     try:
-        output = pipeline.run(abstract_desc, budget)
-        cloud_text = output.final_response
+        if openai_configured():
+            cloud_text = call_openai(
+                abstract_desc,
+                (
+                    "You are a clinical safety reviewer. Return a one-line signal hypothesis "
+                    "followed by two to four action bullets beginning with '- '."
+                ),
+                task="signal",
+                max_tokens=700,
+            )
+        else:
+            output = pipeline.run(abstract_desc, budget)
+            cloud_text = output.final_response
     except Exception:  # noqa: BLE001 — degrade gracefully in mock/error mode
         cloud_text = (
             "- Notify Data Safety Monitoring Board of cluster pattern.\n"

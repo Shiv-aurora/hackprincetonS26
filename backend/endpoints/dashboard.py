@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from backend.deps import get_budget, get_pipeline
+from backend.openai_demo import call_openai, openai_configured
 from backend.schemas import (
     ChartSeries,
     ChartSpec,
@@ -153,6 +154,26 @@ async def generate_dashboard(
         f"User request: {req.prompt}\n\n"
         f"Return ONLY valid JSON, no markdown fences."
     )
+
+    if openai_configured():
+        system = (
+            "You generate concise clinical operations dashboards as strict JSON. "
+            "Use only aggregate, synthetic, or placeholder-safe values from the prompt. "
+            "Return valid JSON only."
+        )
+        try:
+            cloud_text = call_openai(
+                cloud_prompt,
+                system,
+                task="dashboard",
+                max_tokens=1400,
+                json_mode=True,
+            )
+            spec = _parse_cloud_spec(cloud_text, audit_id)
+            if spec is not None:
+                return spec
+        except Exception:  # noqa: BLE001 — demo must degrade rather than crash
+            pass
 
     try:
         output = pipeline.run(cloud_prompt, budget)

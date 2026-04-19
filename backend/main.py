@@ -50,6 +50,7 @@ from backend.schemas import (
     RoutingInfo,
     SessionStats,
 )
+from backend.openai_demo import call_openai, openai_configured
 
 load_dotenv()
 
@@ -58,8 +59,10 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 _API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "sk-ant-mock")
-_MOCK_MODE: bool = _API_KEY == "sk-ant-mock" or not _API_KEY.startswith("sk-ant-")
 _OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+_MOCK_MODE: bool = not openai_configured() and (
+    _API_KEY == "sk-ant-mock" or not _API_KEY.startswith("sk-ant-")
+)
 _VERSION = "0.1.0"
 _EPSILON_CAP = 3.0
 _DELTA = 1e-5
@@ -141,7 +144,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             local_model = None
 
     # Construct RemoteClient (always needed; handles mock mode internally).
+    remote_api_key = os.getenv("OPENAI_API_KEY") or "sk-openai-mock"
     remote_client = RemoteClient(
+        api_key=remote_api_key,
         audit_log_path=_AUDIT_LOG_PATH,
     )
 
@@ -388,8 +393,14 @@ def _heuristic_route(all_entries: list[tuple[int, int, str, str, str]]) -> tuple
 # ---------------------------------------------------------------------------
 
 # Build a realistic mock ICH E2B response referencing actual entity placeholders.
-# Call the cloud LLM: try Anthropic first; fall back to OpenAI gpt-4o-mini on credit/auth errors.
+# Call the cloud LLM through OpenAI for demo mode, with Anthropic as legacy fallback.
 def _call_llm(prompt: str, system: str) -> str:
+    if openai_configured():
+        try:
+            return call_openai(prompt, system, task="chat", max_tokens=1024)
+        except Exception as exc:
+            return f"[OpenAI error: {type(exc).__name__}: {exc}]"
+
     # --- Anthropic path ---
     if _API_KEY and _API_KEY != "sk-ant-mock" and _API_KEY.startswith("sk-ant-"):
         try:
@@ -410,7 +421,7 @@ def _call_llm(prompt: str, system: str) -> str:
             # Credit exhausted — try OpenAI fallback.
 
     # --- OpenAI fallback ---
-    if _OPENAI_API_KEY:
+    if _OPENAI_API_KEY and openai_configured():
         try:
             from openai import OpenAI
             oa = OpenAI(api_key=_OPENAI_API_KEY)

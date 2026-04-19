@@ -359,18 +359,13 @@ export async function completeRequest(
   prompt: string,
   model: "claude-opus-4" | "gpt-5" | "gemini-2" = "claude-opus-4"
 ): Promise<CompleteResponse> {
-  try {
-    const resp = await fetch(`${BASE_URL}/api/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ document, prompt, model }),
-    });
-    if (!resp.ok) throw new Error(`complete: ${resp.status} ${resp.statusText}`);
-    return resp.json() as Promise<CompleteResponse>;
-  } catch {
-    await sleep(DEMO_DELAY_MS * 2);
-    return buildDemoCompletion(proxyTextLocally(document), prompt, model);
-  }
+  const resp = await fetch(`${BASE_URL}/api/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document, prompt, model }),
+  });
+  if (!resp.ok) throw new Error(`complete: ${resp.status} ${resp.statusText}`);
+  return resp.json() as Promise<CompleteResponse>;
 }
 
 export async function fetchAudit(): Promise<AuditResponse> {

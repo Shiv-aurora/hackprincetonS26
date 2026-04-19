@@ -5,12 +5,12 @@ import hashlib
 import random
 import re
 import uuid
-from datetime import datetime, date
-from typing import Any
+from datetime import date
 
 from fastapi import APIRouter, Depends, Request
 
 from backend.deps import get_budget, get_pipeline
+from backend.openai_demo import call_openai, extract_json_object, openai_configured
 from backend.schemas import (
     TimelineAnnotation,
     TimelineBand,
@@ -24,7 +24,6 @@ from backend.schemas import (
     TimelineTracks,
 )
 from ngsp.pipeline import Pipeline, SessionBudget
-from ngsp.safe_harbor import extract_regex_spans
 
 router = APIRouter()
 
@@ -95,6 +94,15 @@ def _extract_verdict(cloud_text: str) -> str:
         if phrase in lower:
             return verdict
     return "unassessable"
+
+
+def _parse_cloud_timeline(cloud_text: str, audit_id: str) -> TimelineResponse | None:
+    try:
+        raw = extract_json_object(cloud_text)
+        raw["audit_id"] = audit_id
+        return TimelineResponse.model_validate(raw)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 # Build a synthetic but internally consistent TimelineResponse from parsed document spans.
@@ -205,9 +213,6 @@ async def assemble_timeline(
 ) -> TimelineResponse:
     audit_id = uuid.uuid4().hex
 
-    # Extract local regex spans for dates, doses, grades.
-    spans = extract_regex_spans(req.document)
-
     # Build abstract causality question (no raw PHI sent to cloud).
     dates = _parse_dates(req.document)
     anchor = dates[0] if dates else date(2024, 1, 1)
@@ -229,6 +234,48 @@ async def assemble_timeline(
         f"Is the drug causally related? State verdict as one of: certain, probable, "
         f"possible, unlikely, unassessable. Provide a brief rationale."
     )
+
+    if openai_configured():
+        dates_summary = ", ".join(str(day) for day in days[:6]) or "14"
+        system = (
+            "You assemble structured SAE timelines as strict JSON. "
+            "Use anonymized age bands, site placeholders, study-relative days, and drug placeholders only. "
+            "Return valid JSON only."
+        )
+        prompt = (
+            "Create a TimelineResponse JSON object with this exact shape:\n"
+            "{"
+            '"demographics":{"age_band":str,"sex":"M|F|U","site_id_placeholder":str},'
+            '"tracks":{"event":[{"day":int,"grade":1-5,"label":str}],'
+            '"dosing":[{"day":int,"kind":"dose|dechallenge|rechallenge","dose_mg":number|null,'
+            '"half_life_days":number|null}],'
+            '"conmeds":[{"start_day":int,"end_day":int,"drug_placeholder":str}],'
+            '"labs":{"series_name":str,"points":[[int,number]],"lower_threshold":number|null,'
+            '"upper_threshold":number|null}},'
+            '"annotations":[{"kind":"onset_latency|dechallenge|rechallenge|who_umc",'
+            '"text":str,"anchor_track":"event|dosing|conmeds|labs","anchor_day":int|null}],'
+            '"causality":{"verdict":"certain|probable|possible|unlikely|unassessable",'
+            '"rationale":str}'
+            "}\n\n"
+            f"Parsed safe facts: age_band={age_band_str}, sex={sex_match.group(1) if sex_match else 'U'}, "
+            f"site_placeholder={f'SITE-{site_match.group(1)}' if site_match else 'SITE-1'}, "
+            f"relative_days=[{dates_summary}], grades={grades_raw or [3]}, doses_mg={doses or []}.\n"
+            f"Causality question: {abstract_q}\n"
+            "Make the tracks clinically plausible and align labels/annotations to the parsed facts."
+        )
+        try:
+            cloud_text = call_openai(
+                prompt,
+                system,
+                task="timeline",
+                max_tokens=1600,
+                json_mode=True,
+            )
+            timeline = _parse_cloud_timeline(cloud_text, audit_id)
+            if timeline is not None:
+                return timeline
+        except Exception:  # noqa: BLE001
+            pass
 
     # Call the pipeline with the abstract question (not the raw document).
     try:
