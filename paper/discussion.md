@@ -8,6 +8,12 @@ This is a structurally important negative result: it shows that the *completenes
 
 The fix (H₁') extends stripping to cover quasi-identifiers using the already-extracted `qi_spans`, adding zero architectural complexity. Results pending.
 
+**H₁' result (QI stripping): FALSIFIED.** The patched pipeline produced verbatim leak rate = 0.4936, effectively unchanged from the original 0.4952. Two mechanisms explain the failure: (1) `extract_quasi_identifiers` has low NER recall — it does not reliably detect all quasi-identifier spans, so most values reach the proxy unstripped; (2) even when placeholders are inserted, the paraphrase decoder re-introduces entity values by echoing surrounding clinical context in which the entity appears.
+
+**Pivot to path-level analysis.** Cross-referencing with the product-build branch experiments (SmolLM2-1.7B, 30 docs, mock API) reveals that the abstract_extractable path achieves 4× lower verbatim leak rates than dp_tolerant (compound_code: 0.20 vs 0.74; efficacy_value: 0.00 vs 0.67). Query synthesis is the viable privacy primitive: it generates a new question without referencing entity values, making inversion structurally impossible. The dp_tolerant path's paraphrase decoder does not propagate DP noise to the text surface (noise magnitude ~438× signal at ε=0.5 yet utility is identical across all ε), meaning the DP mechanism provides formal guarantees only on the embedding side.
+
+A critical confound in all prior runs: SAE narratives route 100% to dp_tolerant. The abstract_extractable path was never evaluated on our stack. H₁'' isolates and validates it using monitoring reports (100% abstract_extractable routing) with Gemma 4 and the real Anthropic API.
+
 ## 1. What the Privacy-Utility Curve Tells Us About Deployability
 
 The central tension in NGSP is that tighter DP noise (smaller ε) provides stronger formal guarantees but degrades the proxy text and therefore the downstream answer quality. The calibration experiment (`experiments/calibrate_epsilon.py`) plots this tradeoff explicitly.

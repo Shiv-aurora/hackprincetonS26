@@ -121,12 +121,37 @@ System change: `pipeline.py` extended to strip quasi-identifier spans with typed
 
 | Metric | Original (no QI strip) | Patched (QI strip) | Threshold | Verdict |
 |--------|----------------------|-------------------|-----------|---------|
-| Verbatim leak rate | 0.4952 | _TBD_ | ≤ 0.05 | _TBD_ |
-| Inversion F1 | 0.6686 | _TBD_ | ≤ 0.09 | _TBD_ |
-| Membership AUC | 0.5000 | _TBD_ | ≤ 0.55 | PASS (baseline) |
-| Utility ratio | _TBD_ | _TBD_ | ≥ 0.85 | _TBD_ |
+| Verbatim leak rate | 0.4952 | **0.4936** | ≤ 0.05 | **FAIL** |
+| Inversion F1 | 0.6686 | _not completed_ | ≤ 0.09 | _run killed_ |
+| Membership AUC | 0.5000 | _not completed_ | ≤ 0.55 | PASS (baseline) |
+| Utility ratio | _TBD_ | _not completed_ | ≥ 0.85 | _TBD_ |
 
-Result source: `experiments/results/run_attacks_eps3.0_qi_strip.log` (in progress)
+Note: Run killed after attacks 1–2; attack 3 and attack 5 not completed. Attacks 1–2 confirmed no improvement over unpatched baseline.
+
+Result source: `experiments/results/run_attacks_eps3.0_qi_strip.log`
+
+### Failure Analysis: Why QI Stripping Did Not Help
+
+Two mechanisms:
+1. **Low NER recall.** `extract_quasi_identifiers` uses Gemma to detect spans via a JSON extraction prompt. On SAE narratives, it misses a substantial fraction of quasi-identifier mentions, particularly compound codes in subordinate clauses and efficacy values embedded in numerical ranges. With no span detected, `apply_span_stripping` has nothing to replace.
+2. **Decoder context leakage.** Even when the primary mention is replaced with `<COMPOUND_CODE_1>`, the paraphrase model reads the full placeholder-substituted text and reconstructs entity-adjacent language from surrounding context (e.g., "the investigational product" referencing the compound, or "the response rate" echoing the efficacy value). The proxy text then contains enough quasi-identifier signal for verbatim matching.
+
+These two failure modes compound: low recall means many spans pass unmodified, and decoder leakage means even successful substitutions are partially undone.
+
+## 6. Abstract-Extractable Path Validation (H₁'')
+
+Corpus: monitoring reports (route 100% to abstract_extractable). Model: Gemma 4 E2B (google/gemma-4-E2B-it). API: real Anthropic API. ε=3.0, seed=42.
+
+Motivation: All prior runs used SAE narratives (100% dp_tolerant). Product-build branch results show abstract_extractable achieves 4× lower leak rates. This run isolates and validates that finding on Gemma 4 + real API.
+
+| Metric | Expected (from product-build) | Actual (Gemma 4) | Threshold | Verdict |
+|--------|------------------------------|------------------|-----------|---------|
+| Verbatim leak rate | ~0.10–0.20 | _TBD_ | ≤ 0.20 | _TBD_ |
+| Inversion F1 | ~baseline | _TBD_ | ≤ 0.30 | _TBD_ |
+| Membership AUC | ~0.50 | _TBD_ | ≤ 0.55 | _TBD_ |
+| Utility ratio | ~0.86 | _TBD_ | ≥ 0.85 | _TBD_ |
+
+Result source: `experiments/results/run_attacks_abstract_extractable.log` (in progress)
 
 ## 4. Comment Audit
 

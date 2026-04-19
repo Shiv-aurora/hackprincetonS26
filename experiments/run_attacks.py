@@ -34,6 +34,9 @@ def parse_args() -> argparse.Namespace:
                    help="Output JSON path (default: experiments/results/attacks_eps{ε}.json)")
     p.add_argument("--inversion-epochs", type=int, default=3,
                    help="Training epochs for the DistilBERT inversion attacker")
+    p.add_argument("--doc-type", type=str, default="sae",
+                   choices=["sae", "monitoring", "protocol"],
+                   help="Document type to use (sae=100%% dp_tolerant, monitoring=100%% abstract_extractable)")
     return p.parse_args()
 
 
@@ -83,9 +86,8 @@ def main() -> int:
         Path(f"experiments/results/attacks_eps{args.epsilon}.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"[run_attacks] ε={args.epsilon}, n_docs={args.n_docs}, seed={args.seed}")
+    print(f"[run_attacks] ε={args.epsilon}, n_docs={args.n_docs}, seed={args.seed}, doc_type={args.doc_type}")
 
-    from data.synthetic_sae import generate_sae_narratives
     from ngsp.local_model import LocalModel
     from ngsp.pipeline import Pipeline
     from ngsp.remote_client import RemoteClient
@@ -100,8 +102,19 @@ def main() -> int:
     remote_client = RemoteClient()
     pipeline = Pipeline(local_model=local_model, remote_client=remote_client)
 
-    docs = generate_sae_narratives(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
-    print(f"[run_attacks] loaded {len(docs)} SAE narratives")
+    # Load documents from the requested type; monitoring routes 100% abstract_extractable.
+    if args.doc_type == "monitoring":
+        from data.synthetic_monitoring import generate_monitoring_reports
+        docs = generate_monitoring_reports(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
+        print(f"[run_attacks] loaded {len(docs)} monitoring reports (100% abstract_extractable)")
+    elif args.doc_type == "protocol":
+        from data.synthetic_protocol import generate_protocol_excerpts
+        docs = generate_protocol_excerpts(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
+        print(f"[run_attacks] loaded {len(docs)} protocol excerpts (~65% abstract_extractable)")
+    else:
+        from data.synthetic_sae import generate_sae_narratives
+        docs = generate_sae_narratives(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
+        print(f"[run_attacks] loaded {len(docs)} SAE narratives (100% dp_tolerant)")
 
     print("[run_attacks] generating proxy pairs …")
     triples = _build_pairs(docs, pipeline, args.epsilon, args.delta, local_model)

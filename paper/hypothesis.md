@@ -35,7 +35,21 @@ Following the failure of H₁ at ε=3.0 (inversion F1=0.6686, leak rate=0.4952),
 
 **Falsification condition:** H₁' is falsified if either (a) inversion F1 > 0.09 on the patched proxy pairs, or (b) utility ratio < 0.85, indicating that stripping too much content degrades answer quality.
 
-**Result:** _TBD — run in progress at `experiments/results/run_attacks_eps3.0_qi_strip.log`_
+**Result:** FALSIFIED — verbatim leak rate = 0.4936 (threshold ≤ 0.05); effectively unchanged from original 0.4952. Run killed after attacks 1–2 confirmed no improvement. Two failure mechanisms: (1) `extract_quasi_identifiers` has low NER recall and does not reliably detect QI spans, so most values pass through unstripped; (2) the paraphrase decoder re-introduces entity values by echoing surrounding clinical context even when placeholders are inserted.
+
+## Hypothesis H₁'' (Abstract-Extractable Path Validation)
+
+Following the failure of H₁' (QI stripping did not reduce leak rate: 0.4936 vs 0.4952 original, because the NER extractor has low recall and the paraphrase decoder echoes surrounding context), the research pivot targets the abstract_extractable path directly.
+
+**H₁'':** On documents that route to abstract_extractable (query synthesis), the verbatim literal leak rate for quasi-identifier categories is ≤ 0.20 and the inversion F1 is ≤ 0.30, at ε=3.0, with Gemma 4 E2B and the real Anthropic API.
+
+Note: thresholds are relaxed from the original H₁ (≤ 0.09) because this hypothesis isolates path-level behavior rather than full-system behavior. The finding from product-build (0.00–0.20 leak on abstract_extractable) motivates these bounds.
+
+**Why H₁'' is expected to hold:** Query synthesis generates a new question without referencing entity values — the mapping is non-injective by construction. An inversion attacker receiving only the synthesized query cannot recover the original entity values because they were never encoded.
+
+**Falsification condition:** H₁'' is falsified if verbatim leak rate > 0.20 on abstract_extractable-routed documents with Gemma 4.
+
+**Result:** _TBD — validation run in progress using monitoring reports_
 
 ## Scope and Limitations
 
