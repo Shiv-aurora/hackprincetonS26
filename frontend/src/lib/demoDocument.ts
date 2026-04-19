@@ -22,15 +22,28 @@ export interface DemoFile {
   content: string;
   language: string;
   prompt: string;
+  /** Human-readable display name (no extension, no underscores) */
+  label: string;
+}
+
+// Strip extension and underscores for a human display name.
+export function formatFileName(raw: string): string {
+  return raw
+    .replace(/\.(txt|csv|json|md|pdf|docx|xlsx)$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
 }
 
 export const DEMO_FILES: Record<string, DemoFile> = {
   "SAE_Narrative_Draft_001.txt": {
+    label: "SAE Narrative — Draft 001",
     content: DEMO_DOCUMENT,
     language: "plaintext",
     prompt: "Rewrite this in ICH E2B format.",
   },
   "patient_records.csv": {
+    label: "Patient Records",
     language: "csv",
     content: `subject_id,age,sex,site_id,enrollment_date,compound,dose,ae_grade
 SUBJ-001,68,F,Site 104,14-MAR-2024,BMS-986253,50mg,4
@@ -40,6 +53,7 @@ SUBJ-004,62,M,Site 110,03-JUN-2024,BMS-986253,25mg,3`,
     prompt: "Summarize patient demographics and adverse event incidence by site.",
   },
   "extraction_rules.json": {
+    label: "Extraction Rules",
     language: "json",
     content: `{
   "version": "2.1",
@@ -55,12 +69,7 @@ SUBJ-004,62,M,Site 110,03-JUN-2024,BMS-986253,25mg,3`,
   "mnpi_patterns": [
     "efficacy_value", "amendment_detail",
     "dsmb_result", "interim_analysis"
-  ],
-  "routing_thresholds": {
-    "dp_tolerant": ["mnpi"],
-    "abstract_extractable": ["phi", "ip"],
-    "local_only": []
-  }
+  ]
 }`,
     prompt: "Explain what types of sensitive information this extraction ruleset covers.",
   },

@@ -1,16 +1,24 @@
 import { Layout, MoreHorizontal, X, Minus, Square, ShieldCheck } from "lucide-react";
 import type { EntityItem, SessionStats } from "../lib/api";
+import { DEMO_FILES, formatFileName } from "../lib/demoDocument";
 
 interface TitleBarProps {
   entities?: EntityItem[];
   auditStats?: SessionStats | null;
+  activeFileName?: string;
+  fileRenames?: Record<string, string>;
 }
 
-export default function TitleBar({ entities = [], auditStats }: TitleBarProps) {
+export default function TitleBar({ entities = [], auditStats, activeFileName = "", fileRenames = {} }: TitleBarProps) {
   const phiCount = entities.filter((e) => e.category === "phi").length;
   const ipCount = entities.filter((e) => e.category === "ip").length;
   const mnpiCount = entities.filter((e) => e.category === "mnpi").length;
   const totalEntities = entities.length;
+
+  const displayLabel = fileRenames[activeFileName]
+    ?? DEMO_FILES[activeFileName]?.label
+    ?? formatFileName(activeFileName)
+    ?? "Untitled";
 
   return (
     <header className="h-8 bg-[#111111] flex items-center justify-between px-3 z-50 shrink-0 border-b border-vscode-border select-none">
@@ -33,9 +41,9 @@ export default function TitleBar({ entities = [], auditStats }: TitleBarProps) {
       {/* Center: window title */}
       <div className="flex-1 flex justify-center h-full items-center">
         <div className="glass px-3 py-0.5 rounded-md text-[11px] text-[#888] flex items-center gap-2 hover:text-[#bbb] cursor-default transition-colors duration-150">
-          <span className="text-[#666]">Sovereign_OS</span>
+          <span className="text-[#666]">Sovereign OS</span>
           <span className="text-[#2e2e2e]">—</span>
-          <span>SAE_Narrative_Draft_001.txt</span>
+          <span>{displayLabel}</span>
         </div>
       </div>
 

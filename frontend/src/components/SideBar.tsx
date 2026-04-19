@@ -1,4 +1,5 @@
-import { useState, type ElementType, type Key as ReactKey, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ElementType, type Key as ReactKey, type MouseEvent } from "react";
+import * as d3 from "d3";
 import {
   ChevronDown,
   ChevronRight,
@@ -12,13 +13,16 @@ import {
   Server,
   Check,
   Pencil,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import type { SessionStats } from "../lib/api";
-import { DEMO_FILES, MODEL_LABELS, type ModelId } from "../lib/demoDocument";
+import { DEMO_FILES, MODEL_LABELS, formatFileName, type ModelId } from "../lib/demoDocument";
 
 interface SideBarProps {
   activeTab: string;
   auditStats?: SessionStats | null;
+  entityCounts?: { phi: number; ip: number; mnpi: number };
   openFiles: string[];
   activeFileName: string;
   fileRenames: Record<string, string>;
@@ -31,6 +35,7 @@ interface SideBarProps {
 export default function SideBar({
   activeTab,
   auditStats,
+  entityCounts,
   openFiles,
   activeFileName,
   fileRenames,
@@ -40,11 +45,11 @@ export default function SideBar({
   onModelChange,
 }: SideBarProps) {
   if (activeTab === "VITALS") {
-    return <PrivacyStatsSidebar auditStats={auditStats} />;
+    return <PrivacyStatsSidebar auditStats={auditStats} entityCounts={entityCounts} />;
   }
   if (activeTab === "PHARMACY") {
     return (
-      <SettingsSidebar
+      <KeyVaultSidebar
         selectedModel={selectedModel}
         onModelChange={onModelChange}
       />
@@ -85,7 +90,7 @@ function RecordsSidebar({
     <aside className="w-60 bg-surface-container-lowest flex flex-col shrink-0 border-r border-vscode-border">
       <div className="h-[34px] px-4 flex items-center">
         <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
-          Explorer
+          Patient Records
         </span>
       </div>
 
@@ -95,7 +100,7 @@ function RecordsSidebar({
           <div className="h-6 flex items-center px-2 hover:bg-white/[0.03] cursor-pointer select-none">
             <ChevronDown size={14} className="text-[#555] mr-1 shrink-0" />
             <span className="text-[10px] font-semibold text-[#777] uppercase tracking-widest">
-              Sovereign_OS
+              Sovereign OS
             </span>
           </div>
 
@@ -104,7 +109,7 @@ function RecordsSidebar({
               <FileItem
                 key={name}
                 originalName={name}
-                displayName={fileRenames[name] ?? name}
+                displayName={fileRenames[name] ?? DEMO_FILES[name]?.label ?? formatFileName(name)}
                 active={name === activeFileName}
                 open={openFiles.includes(name)}
                 onClick={() => onLoadDocument(name)}
@@ -115,7 +120,7 @@ function RecordsSidebar({
             <div className="h-6 flex items-center px-4 hover:bg-white/[0.03] cursor-pointer opacity-40">
               <ChevronRight size={14} className="text-[#555] mr-1 shrink-0" />
               <FolderOpen size={13} className="text-[#555] mr-2 shrink-0" />
-              <span className="text-[12px] text-[#666]">logs</span>
+              <span className="text-[12px] text-[#666]">Audit Logs</span>
             </div>
           </div>
         </div>
@@ -125,7 +130,7 @@ function RecordsSidebar({
           <div className="h-6 flex items-center px-1 hover:bg-white/[0.03] cursor-pointer mb-2 select-none">
             <ChevronDown size={14} className="text-[#555] mr-1 shrink-0" />
             <span className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">
-              Clinical_Context
+              Clinical Context
             </span>
           </div>
           <div className="px-3 space-y-3 mb-4">
@@ -140,7 +145,7 @@ function RecordsSidebar({
               </div>
             ))}
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9.5px] text-[#4a4a4a] uppercase tracking-widest">Active Meds</span>
+              <span className="text-[9.5px] text-[#4a4a4a] uppercase tracking-widest">Active Compound</span>
               <div className="flex flex-wrap gap-1 mt-0.5">
                 <span className="px-1.5 py-0.5 bg-phi/10 text-phi text-[9px] rounded border border-phi/20">
                   BMS-986253
@@ -160,7 +165,7 @@ function RecordsSidebar({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
-          <span className="text-[10.5px] text-[#666]">Core Node: Optimized</span>
+          <span className="text-[10.5px] text-[#666]">Privacy Layer: Active</span>
         </div>
       </div>
     </aside>
@@ -248,19 +253,106 @@ function FileItem({ originalName, displayName, active, open, onClick, onRename }
   );
 }
 
-// ── VITALS — privacy session stats ───────────────────────────────────────────
+// ── VITALS — privacy session stats with D3 donut ──────────────────────────────
 
-function PrivacyStatsSidebar({ auditStats }: { auditStats?: SessionStats | null }) {
+interface PrivacyStatsSidebarProps {
+  auditStats?: SessionStats | null;
+  entityCounts?: { phi: number; ip: number; mnpi: number };
+}
+
+function EntityDonut({ phi, ip, mnpi }: { phi: number; ip: number; mnpi: number }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const total = phi + ip + mnpi;
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    const size = 100;
+    const r = size / 2;
+
+    svg.attr("width", size).attr("height", size);
+    const g = svg.append("g").attr("transform", `translate(${r},${r})`);
+
+    if (total === 0) {
+      g.append("circle")
+        .attr("r", r * 0.72)
+        .attr("fill", "none")
+        .attr("stroke", "#222")
+        .attr("stroke-width", r * 0.26);
+      g.append("text")
+        .attr("text-anchor", "middle").attr("dy", "0.4em")
+        .attr("font-size", "13").attr("fill", "#444")
+        .attr("font-family", "Inter, sans-serif")
+        .text("—");
+      return;
+    }
+
+    const segments = [
+      { value: phi, color: "#ce9178" },
+      { value: ip, color: "#4fc1ff" },
+      { value: mnpi, color: "#dcdcaa" },
+    ].filter((d) => d.value > 0);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pie = d3.pie<any>().value((d) => d.value).sort(null).padAngle(0.05);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const arc = d3.arc<any>().innerRadius(r * 0.56).outerRadius(r - 4);
+
+    g.selectAll("path")
+      .data(pie(segments))
+      .join("path")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .attr("d", (d: any) => arc(d))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .attr("fill", (d: any) => d.data.color)
+      .attr("opacity", 0.85);
+
+    g.append("text")
+      .attr("text-anchor", "middle").attr("dy", "0.35em")
+      .attr("font-size", "16").attr("font-weight", "600")
+      .attr("fill", "#c8c8c8").attr("font-family", "Inter, sans-serif")
+      .text(String(total));
+  }, [phi, ip, mnpi, total]);
+
+  return <svg ref={svgRef} />;
+}
+
+function PrivacyStatsSidebar({ auditStats, entityCounts }: PrivacyStatsSidebarProps) {
+  const phi = entityCounts?.phi ?? 0;
+  const ip = entityCounts?.ip ?? 0;
+  const mnpi = entityCounts?.mnpi ?? 0;
+
   return (
     <aside className="w-60 bg-surface-container-lowest flex flex-col shrink-0 border-r border-vscode-border">
       <div className="h-[34px] px-4 flex items-center gap-2">
         <ShieldCheck size={12} className="text-tertiary" />
         <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
-          Privacy Stats
+          Privacy Monitor
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* D3 Donut chart */}
+        <div className="flex flex-col items-center gap-3">
+          <EntityDonut phi={phi} ip={ip} mnpi={mnpi} />
+          <div className="flex items-center gap-4 text-[10.5px]">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-phi inline-block" />
+              <span className="text-[#777]">PHI <span className="text-[#aaa] font-semibold tabular">{phi}</span></span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-ip inline-block" />
+              <span className="text-[#777]">IP <span className="text-[#aaa] font-semibold tabular">{ip}</span></span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-mnpi inline-block" />
+              <span className="text-[#777]">MNPI <span className="text-[#aaa] font-semibold tabular">{mnpi}</span></span>
+            </span>
+          </div>
+        </div>
+
         {/* Session counters */}
         <div>
           <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-3">
@@ -268,8 +360,8 @@ function PrivacyStatsSidebar({ auditStats }: { auditStats?: SessionStats | null 
           </p>
           <div className="space-y-2">
             {[
-              { label: "Total requests", value: auditStats?.total_requests ?? 0, icon: Clock },
-              { label: "Proxied to cloud", value: auditStats?.proxied ?? 0, icon: Route, color: "text-tertiary" },
+              { label: "Total requests", value: auditStats?.total_requests ?? 0, icon: Clock, color: undefined },
+              { label: "Routed to cloud", value: auditStats?.proxied ?? 0, icon: Route, color: "text-tertiary" },
               { label: "Answered locally", value: auditStats?.local_only ?? 0, icon: Server, color: "text-ip" },
               { label: "Blocked (canary)", value: auditStats?.blocked ?? 0, icon: ShieldCheck, color: "text-error" },
             ].map(({ label, value, icon: Icon, color }) => (
@@ -293,7 +385,7 @@ function PrivacyStatsSidebar({ auditStats }: { auditStats?: SessionStats | null 
           </p>
           <p className="text-[10.5px] text-[#5a5a5a] leading-relaxed">
             All requests route through the NGSP proxy layer. PHI, IP, and MNPI
-            identifiers are replaced before cloud transmission and restored locally.
+            identifiers are replaced before cloud transmission.
           </p>
         </div>
 
@@ -321,7 +413,7 @@ function PrivacyStatsSidebar({ auditStats }: { auditStats?: SessionStats | null 
   );
 }
 
-// ── PHARMACY — settings ───────────────────────────────────────────────────────
+// ── KEY VAULT — API key & model config ────────────────────────────────────────
 
 const MODEL_ORDER: ModelId[] = ["claude-opus-4", "gpt-5", "gemini-2"];
 const MODEL_NOTES: Record<ModelId, string> = {
@@ -330,51 +422,79 @@ const MODEL_NOTES: Record<ModelId, string> = {
   "gemini-2": "Optional",
 };
 
-interface SettingsSidebarProps {
+interface KeyVaultSidebarProps {
   selectedModel: ModelId;
   onModelChange: (model: ModelId) => void;
 }
 
-function SettingsSidebar({ selectedModel, onModelChange }: SettingsSidebarProps) {
-  const apiUrl =
-    (import.meta.env as Record<string, string | undefined>).VITE_API_URL ??
-    "http://localhost:8000";
+function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps) {
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [connected, setConnected] = useState(false);
+
+  const handleConnect = () => {
+    if (apiKey.trim().length > 10) setConnected(true);
+  };
 
   return (
     <aside className="w-60 bg-surface-container-lowest flex flex-col shrink-0 border-r border-vscode-border">
       <div className="h-[34px] px-4 flex items-center gap-2">
         <Key size={12} className="text-[#555]" />
         <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
-          Settings
+          Key Vault
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        {/* Backend */}
+        {/* API Key input */}
         <div>
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-2">
-            Backend
+          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-2.5">
+            API Connection
           </p>
           <div className="space-y-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9.5px] text-[#4a4a4a]">API URL</span>
-              <span className="text-[11px] text-[#888] font-mono glass px-2 py-1 rounded-md break-all">
-                {apiUrl}
-              </span>
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => { setApiKey(e.target.value); setConnected(false); }}
+                placeholder="Paste your API key…"
+                className="w-full bg-[#1a1a1a] border border-vscode-border rounded-lg px-3 py-2 pr-8 text-[11.5px] text-[#d4d4d4] placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors duration-150"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+              >
+                {showKey ? <EyeOff size={12} /> : <Eye size={12} />}
+              </button>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9.5px] text-[#4a4a4a]">Mode</span>
-              <span className="text-[11px] text-mnpi font-mono bg-mnpi/5 px-2 py-1 rounded-md border border-mnpi/15">
-                Mock (offline demo)
-              </span>
-            </div>
+            <button
+              onClick={handleConnect}
+              disabled={apiKey.trim().length < 10}
+              className={`w-full py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-150 ${
+                connected
+                  ? "bg-tertiary/10 border border-tertiary/25 text-tertiary"
+                  : "glass border-vscode-border text-[#888] hover:text-[#c8c8c8] hover:border-[#333] disabled:opacity-30 disabled:cursor-not-allowed"
+              }`}
+            >
+              {connected ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Check size={11} /> Connected
+                </span>
+              ) : (
+                "Connect"
+              )}
+            </button>
           </div>
+          <p className="text-[9.5px] text-[#333] mt-1.5 leading-relaxed">
+            Keys are stored in memory only and never persisted.
+          </p>
         </div>
 
         {/* Model selector */}
         <div>
           <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-2">
-            Model
+            AI Model
           </p>
           <div className="space-y-1.5">
             {MODEL_ORDER.map((id) => {
@@ -383,33 +503,34 @@ function SettingsSidebar({ selectedModel, onModelChange }: SettingsSidebarProps)
                 <button
                   key={id}
                   onClick={() => onModelChange(id)}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg border text-left transition-all duration-150 ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all duration-150 ${
                     active
                       ? "border-tertiary/25 bg-tertiary/5 ring-1 ring-tertiary/10"
                       : "border-vscode-border bg-transparent hover:border-[#333] hover:bg-white/[0.02]"
                   }`}
                 >
-                  <span className={`text-[11px] font-mono ${active ? "text-[#c8c8c8]" : "text-[#666]"}`}>
-                    {MODEL_LABELS[id]}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[9px] uppercase font-semibold ${active ? "text-tertiary" : "text-[#444]"}`}>
+                  <div className="flex flex-col gap-0.5">
+                    <span className={`text-[11.5px] font-medium ${active ? "text-[#c8c8c8]" : "text-[#666]"}`}>
+                      {MODEL_LABELS[id]}
+                    </span>
+                    <span className={`text-[9px] ${active ? "text-tertiary/70" : "text-[#3a3a3a]"}`}>
                       {MODEL_NOTES[id]}
                     </span>
-                    {active && <Check size={10} className="text-tertiary" />}
                   </div>
+                  {active && <Check size={12} className="text-tertiary shrink-0" />}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* API key hint */}
+        {/* Privacy note */}
         <div className="p-3 glass rounded-lg">
-          <p className="text-[9.5px] text-[#4a4a4a] mb-1.5">To enable real API calls:</p>
-          <p className="text-[10.5px] font-mono text-[#666] leading-relaxed">
-            Set <span className="text-phi">ANTHROPIC_API_KEY</span> in{" "}
-            <span className="text-ip">.env</span>
+          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold mb-1.5 tracking-widest">
+            Privacy Mode
+          </p>
+          <p className="text-[10.5px] text-[#5a5a5a] leading-relaxed">
+            Running in offline demo mode. All sensitive identifiers are proxied — no raw clinical data reaches any external service.
           </p>
         </div>
       </div>
