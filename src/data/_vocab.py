@@ -111,6 +111,10 @@ COMORBIDITIES: tuple[str, ...] = (
     "obstructive sleep apnea",
     "atrial fibrillation",
     "hypothyroidism",
+    "hyperlipidemia",
+    "obesity (BMI ≥ 30)",
+    "COPD (GOLD stage II)",
+    "deep vein thrombosis",
 )
 
 # Outcome phrases for SAE resolution.
@@ -164,4 +168,6 @@ DEVIATION_TYPES: tuple[str, ...] = (
     "incorrect dose administration",
     "informed consent procedural deviation",
     "laboratory sample handling deviation",
+    "temperature excursion for investigational product",
+    "unscheduled dose interruption",
 )
