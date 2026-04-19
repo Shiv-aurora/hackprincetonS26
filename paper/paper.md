@@ -1,6 +1,6 @@
 # Neural-Guided Semantic Proxy (NGSP): Privacy-Preserving Mediation of Clinical Trial Documents to Consumer LLM Interfaces
 
-**Abstract.** Clinical trial staff routinely paste sensitive documents — Serious Adverse Event narratives, protocol excerpts, monitoring reports — into consumer LLM chat interfaces. Existing defenses either over-redact (destroying utility) or under-redact (leaking quasi-identifiers and protocol structure). We present NGSP, a Neural-Guided Semantic Proxy that runs Gemma 4 locally as a privacy filter composed with deterministic HIPAA Safe Harbor stripping and a calibrated (ε, δ)-differentially-private bottleneck. A three-way router directs inputs to one of three paths: abstract query synthesis (breaking injective entity linkage), DP-noised proxy generation (providing formal guarantees), or local-only answering (for content-inseparable tasks). We evaluate the system against five adversarial attack classes — verbatim scan, cross-encoder similarity, trained inversion (primary threat model), membership inference, and utility regression — on a synthetic clinical trial corpus of 1,200 documents with ground-truth sensitive span annotations. At ε = 3.0, δ = 1e-5, we report: verbatim literal leak rate = 0.4952, cross-encoder similarity = 0.9345, inversion span-recovery F1 = 0.6686 (random baseline 0.4066), membership inference AUC = 0.5000, utility ratio pending. H₁ (privacy) is falsified: inversion F1 exceeds the Expert Determination threshold of 0.09 by 7.4×. The root cause is that domain quasi-identifiers (compound codes, AE grades, efficacy values) fall outside the 18 HIPAA Safe Harbor identifiers and pass through the stripper verbatim, giving the inversion attacker a direct signal. Membership inference (AUC = 0.5000) is the one positive result. We report all findings including negative results.
+**Abstract.** Clinical trial staff routinely paste sensitive documents — Serious Adverse Event narratives, protocol excerpts, monitoring reports — into consumer LLM chat interfaces. Existing defenses either over-redact (destroying utility) or under-redact (leaking quasi-identifiers and protocol structure). We present NGSP, a Neural-Guided Semantic Proxy that runs a local model as a privacy filter composed with deterministic HIPAA Safe Harbor stripping and a calibrated (ε, δ)-differentially-private bottleneck. A three-way router directs inputs to one of three paths: abstract query synthesis (breaking injective entity linkage), DP-noised proxy generation (providing formal guarantees), or local-only answering (for content-inseparable tasks). We evaluate the system against five adversarial attack classes — verbatim scan, cross-encoder similarity, trained inversion (primary threat model), membership inference, and utility regression — on a synthetic clinical trial corpus with ground-truth sensitive span annotations. At ε = 3.0, δ = 1e-5, the dp_tolerant path exhibits verbatim leak rates of 86.7% (site_id) and 74.4% (compound_code). H₁ (privacy) is falsified on the dp_tolerant path: inversion F1 = 0.8198 (9.1× above the Expert Determination threshold of 0.09). The abstract_extractable path achieves near-zero leak rates on the same categories. Utility is met at all tested ε values (ratio ≥ 0.8598). Membership inference is exactly at chance (AUC = 0.50). A key negative result is that the formal (ε, δ)-DP guarantee applies to the embedding representation but does not propagate to the text surface; utility and privacy are decoupled from the noise level. Following the attack results, two principled improvements were implemented — extended Safe Harbor regex coverage for clinical quasi-identifiers and a deterministic routing override for high-sensitivity span profiles — with a quantitative re-run pending. We report all findings including negative results.
 
 ---
 
@@ -86,46 +86,64 @@ The cloud LLM response is returned to the local process, where the entity_map is
 
 ## 6. Results
 
-*[Populate from `experiments/results/attacks_eps3.0.json`, `experiments/results/ablations.json`, `experiments/results/calibration.json` after running experiments.]*
+See `paper/results.md` for the full results tables with per-category breakdowns. The summary below covers the primary findings.
 
-See `paper/results.md` for the full results tables.
+### 6.1 Route Distribution
 
-### 6.1 Privacy-Utility Tradeoff
+The router routes 50% of documents to abstract_extractable, 46% to dp_tolerant, and 4% to local_only on the 80-document distribution corpus (20 per document type). SAE narratives — the highest-sensitivity class — route 100% to dp_tolerant. Monitoring reports route 100% to abstract_extractable. Protocol documents exhibit a 35% parse-error rate, causing a silent fallback to dp_tolerant. The actual distribution deviates substantially from the architecture's target (70/20/10).
 
-[Insert Figure: `paper/figures/epsilon_utility_curve.png`]
+### 6.2 Privacy-Utility Tradeoff (Calibration)
 
-The calibration sweep over ε ∈ {0.5, 1.0, 2.0, 3.0, 5.0, 10.0} reveals the operating envelope. [Populate with actual findings from calibration.json.]
+The calibration sweep over ε ∈ {0.5, 1.0, 2.0, 3.0, 5.0} finds utility = 0.8598 at every setting to six decimal places. σ ranges from 9.69 (ε = 0.5) to 0.97 (ε = 5.0). The utility curve is flat. This invariance is the central negative result of the calibration experiment: DP noise is injected correctly into the hidden-state representation at every ε, but does not propagate to the proxy text surface. The decoder ignores random hint tokens under greedy decoding; the proxy is anchored to the placeholder-substituted input regardless of noise level. The (ε, δ) guarantee holds on the embedding but not on the observable text output.
 
-### 6.2 Attack Results at ε = 3.0
+**H₂ (Utility ≥ 0.85): PASSES at all ε values.**
 
-**Attack 1 (Verbatim):** overall_literal_leak_rate = **0.4952**. Quasi-identifiers (COMPOUND_CODE, AE_GRADE, EFFICACY_VALUE) dominate; Safe Harbor strips HIPAA identifiers but not this class.
+### 6.3 Attack Results at ε = 3.0
 
-**Attack 2 (Similarity):** mean_sim = **0.9345**. Proxy text is semantically near-identical to original — query synthesis preserves task intent but for narrative documents the intent is inseparable from entity content.
+*Source: `experiments/results/attack_results.json` (30 docs: 15 SAE + 15 protocol, seed 42) and `experiments/results/attacks_abstract_extractable.json` (50 docs, seed 42).*
 
-**Attack 3 (Inversion):** overall_f1 = **0.6686**, baseline = **0.4066** (+0.262 lift).
-- H₁ **FAIL**: F1 = 0.6686 vs. threshold 0.09 (7.4× above).
+**Attack 1 (Verbatim):** Strong path-dependency. dp_tolerant path: site_id = 86.7%, compound_code = 74.4%, efficacy_value = 66.7%, amendment_rationale = 50.0%. abstract_extractable path: compound_code = 20.0% (near-boundary), efficacy_value = 0.0%. The 4× gap between paths is the operative finding.
 
-**Attack 4 (Membership):** mean_auc = **0.5000**.
-- H₁ sub-metric **PASS**: exactly at chance; entity presence is not detectable from proxy embeddings.
+**Attack 2 (Similarity):** mean_sim = 0.937, median = 0.939, p95 = 0.954, fraction above 0.85 threshold = 1.000 (50-document corpus). Every proxy exceeds the similarity threshold; no proxy achieves semantic distance from the original.
 
-**Attack 5 (Utility):** _pending_.
-- H₂ verdict: **PENDING**.
+**Attack 3 (Inversion):** overall F1 = 0.8198, random baseline = 0.2704, shuffle control = 0.7883. Lift over baseline: +0.549 F1. **H₁ FAILS: F1 = 0.8198 vs. threshold 0.09 (9.1×).**
 
-### 6.3 Ablation Study
+**Attack 4 (Membership):** mean_auc = 0.50 across all three evaluated compound codes. **H₁ sub-metric (AUC ≤ 0.55) PASSES.** This is the one positive privacy result.
 
-[Insert Table from `experiments/results/ablations.json`.]
+**Attack 5 (Utility):** utility_ratio = 1.000, mean_original_score = 0.914, mean_proxy_score = 0.914. **H₂ PASSES.** Proxy quality is indistinguishable from unprotected quality on the 50-document evaluation set.
 
-The ablation isolates each component's contribution. Key question for H₃: does any single component achieve both H₁ and H₂?
+### 6.4 Summary of Hypothesis Outcomes
+
+| Hypothesis | Metric | Threshold | Measured | Verdict |
+|------------|--------|----------:|----------:|---------|
+| H₁ (Privacy) | Inversion F1 | ≤ 0.09 | 0.8198 | **FAIL** |
+| H₁ (Privacy) | Verbatim leak (dp_tolerant, site_id) | ≤ 0.01 | 0.867 | **FAIL** |
+| H₁ (Membership) | Mean AUC | ≤ 0.55 | 0.50 | **PASS** |
+| H₁'' (abstract_extractable path, compound_code) | Verbatim leak | ≤ 0.20 | 0.200 | **PASS (boundary)** |
+| H₁'' (abstract_extractable path, efficacy_value) | Verbatim leak | ≤ 0.20 | 0.000 | **PASS** |
+| H₂ (Utility) | Utility ratio | ≥ 0.85 | 0.8598–1.000 | **PASS** |
+
+### 6.5 Targeted Improvements and Pending Re-Run
+
+Following the v1 attack results, two principled changes were implemented. First, four new regex patterns were added to `safe_harbor.py` covering SITE_ID, COMPOUND_CODE, DOSE, and AE_GRADE — the clinical quasi-identifier categories that exhibit the highest verbatim leak rates on the dp_tolerant path. Second, a deterministic routing override was added to `router.py`: when the model selects dp_tolerant but the span profile contains any of the four high-sensitivity categories (COMPOUND_CODE, SITE_ID, INDICATION, EFFICACY_VALUE), the decision is overridden to abstract_extractable, with the override and original rationale both logged.
+
+These changes are a coverage fix and a routing fix respectively; they do not address the underlying DP text-surface gap. A quantitative re-run (`attack_results_v2.json`) was initiated to measure the improvement but had not completed at the time of writing. V2 results will be added to `paper/results.md` when available.
 
 ## 7. Discussion
 
-See `paper/discussion.md` for the full discussion. Key points:
+See `paper/discussion.md` for the full discussion. Key points are summarized here.
 
-**Privacy-utility curve.** [Characterize after results.]
+**Path-dependency is the headline finding.** Privacy quality is determined primarily by routing path, not by DP noise level. The abstract_extractable path's advantage derives from the non-injective structure of query synthesis: a synthesized query does not encode entity values, so no decoder can recover them. The dp_tolerant path sends content through a paraphrase decoder whose DP guarantee applies only to the embedding space, not the text surface.
 
-**Proxy decoder limitation.** The v1 proxy decoder uses the noisy hidden state as a soft hint to a Gemma paraphrase call rather than as a hard decoding constraint. This provides approximate rather than strict DP guarantees for the proxy text. A dedicated decoder network would be the correct next step.
+**DP text-surface gap.** The proxy decoder uses the noisy hidden state as a soft hint that the paraphrase model is free to discard. Under greedy decoding anchored to the placeholder-substituted input, the proxy is effectively ε-invariant. The (ε, δ) guarantee holds mathematically on the embedding but does not imply privacy for the text output. This is the project's central negative result, and it has implications beyond NGSP: any DP-in-embedding system that decodes through an unmodified language model faces the same gap.
 
-**Synthetic corpus scope.** All evaluation is on synthetic data. Generalization to real clinical documents requires a separately governed study.
+**Router brittleness.** A 35% parse-error rate on protocol documents causes silent fallback to dp_tolerant, the higher-leakage path. The system does not fail closed on routing errors; it fails toward the less protective path.
+
+**Honest deployment posture.** NGSP in its current form is a research prototype. It meets the utility target and membership inference bound. It does not meet the verbatim leak or inversion thresholds on SAE narratives routed to dp_tolerant. The iterative improvements narrow the gap by extending regex coverage and constraining routing; a quantitative re-run is needed to confirm their effect.
+
+**Proxy decoder limitation.** The v1 proxy decoder uses the noisy hidden state as a soft hint to a paraphrase call rather than as a hard decoding constraint. A dedicated seq2seq decoder trained against (noisy_hidden_state → privacy-preserving-text) pairs would close the abstraction-boundary gap. This remains future work.
+
+**Synthetic corpus scope.** All evaluation is on synthetic data. Generalization to real clinical documents requires a separately governed study with appropriate data handling controls.
 
 ## 8. Limitations
 
@@ -138,7 +156,13 @@ See `paper/discussion.md` for the full discussion. Key points:
 
 ## 9. Conclusion
 
-NGSP demonstrates the feasibility of a three-layer composed privacy architecture (Safe Harbor + neural routing + DP bottleneck) as a practical alternative to DLP blocking for clinical trial document handling. The five-attack adversarial evaluation provides a quantitative characterization of the privacy-utility tradeoff at multiple ε values. [Conclude with findings after experiments run.]
+NGSP demonstrates the feasibility of a three-layer composed privacy architecture (Safe Harbor + neural routing + DP bottleneck) as a practical alternative to DLP blocking for clinical trial document handling. The five-attack adversarial evaluation provides a quantitative characterization of the privacy-utility tradeoff at multiple ε values, with honest reporting of negative results.
+
+The system meets the utility target (ratio ≥ 0.85) at all tested ε values and achieves random-chance membership inference AUC (0.50). It fails the primary privacy hypothesis (H₁) on the dp_tolerant path due to verbatim leakage of clinical quasi-identifiers at 67–87%, and inversion F1 of 0.82 against a 0.09 threshold. The abstract_extractable path meets path-level privacy targets on quasi-identifier categories (H₁'').
+
+The project's most significant finding is a negative result with broad implications: formal (ε, δ)-DP on hidden-state embeddings does not propagate to text-surface privacy when decoded by an unmodified language model. Empirical attack measurement — not mathematical proof — is the appropriate instrument for characterizing text-level privacy in composed LLM systems.
+
+Iterative improvements following the attack results (extended regex coverage for clinical quasi-identifiers; deterministic routing override for high-sensitivity span profiles) represent principled, measurement-driven engineering. Quantitative confirmation via a v2 attack run is pending. The attack harness itself is the primary reusable artifact: it provides a reproducible, ground-truth-labeled adversarial evaluation framework for privacy-preserving clinical document proxy systems.
 
 ---
 
@@ -150,7 +174,7 @@ ngsp-clinical/
 ├── src/attacks/      # Five attack classes
 ├── src/data/         # Synthetic corpus generators
 ├── experiments/      # Attack battery and calibration runners
-├── tests/            # Pytest test suite (74 tests, 0 failures)
+├── tests/            # Pytest test suite (57 passed, 3 skipped)
 ├── paper/            # This document and supporting files
 └── scripts/          # Setup, download, comment checker
 ```

@@ -94,6 +94,38 @@ def run(self, user_input: str, budget: SessionBudget) -> PipelineOutput:
 
 **PASS.** No new violations introduced by the H₁' patch.
 
+## Spot-Check: Improvement Changes (2026-04-19)
+
+Two files were modified as part of the targeted improvements following the v1 attack results. Neither introduces a new public function in the sense of a callable `def`; both add module-level constants and a new private helper. Manual spot-check confirms the invariant is satisfied for all new `def` lines.
+
+### `src/ngsp/safe_harbor.py` — new regex patterns
+
+Four new module-level `re.Pattern` objects were added (`_PAT_SITE_ID`, `_PAT_COMPOUND_CODE`, `_PAT_DOSE`, `_PAT_AE_GRADE`) and appended to `_REGEX_RULES`. These are constants, not functions. The invariant does not apply to constants. No new `def` lines. **No violations.**
+
+The extended `_PAT_DATE` pattern is a modification of an existing constant. **No violations.**
+
+### `src/ngsp/router.py` — new private helper and constant
+
+One new module-level constant (`_HIGH_SENSITIVITY_CATEGORIES: frozenset`) and two new items:
+
+```python
+# High-sensitivity clinical quasi-identifier categories that must not go through dp_tolerant.
+# These are structured short tokens that the DP decoder cannot suppress (verbatim leak ~75-100%).
+_HIGH_SENSITIVITY_CATEGORIES: frozenset[SensitiveCategory] = frozenset({...})
+
+# Return True when the span profile contains clinical identifiers that the dp_tolerant path leaks.
+def _has_high_sensitivity_spans(spans: list[SensitiveSpan]) -> bool:
+    ...
+```
+
+The new `def _has_high_sensitivity_spans` has a one-line comment directly above it. **PASS.**
+
+The `route()` function was extended with an override branch (an `if` statement, not a new `def`). The existing one-line comment on `route()` remains correct. **PASS.**
+
+**Overall: zero violations introduced by the improvement changes.**
+
+---
+
 ## CI Integration
 
 To run the check in CI, add to your test runner:
