@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NGSP | Privacy-Preserving Mediation for Clinical Trial LLM Workflows</title>
+    <meta
+      name="description"
+      content="NGSP is a local privacy layer for clinical trial teams using consumer LLMs. It transforms sensitive text before anything reaches the cloud."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">NGSP</div>
+          <div>
+            <p class="eyebrow">Neural-Guided Semantic Proxy</p>
+            <h1>Privacy-preserving mediation for clinical trial AI workflows</h1>
+          </div>
+        </div>
+        <nav class="topnav">
+          <a href="#problem">Problem</a>
+          <a href="#solution">Solution</a>
+          <a href="#workspace">Demo</a>
+          <a href="#evaluation">Evaluation</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Hackathon research prototype</p>
+            <h2>Transform sensitive clinical trial text before it reaches the cloud.</h2>
+            <p class="hero-text">
+              NGSP sits between clinical trial staff and consumer LLMs. It strips obvious identifiers,
+              routes each request by leakage risk, and only forwards a privacy-processed proxy when
+              the task can safely leave the machine.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#workspace">View interactive demo</a>
+              <a class="button button-secondary" href="#evaluation">See attack model</a>
+            </div>
+          </div>
+          <div class="hero-panel">
+            <div class="hero-stat">
+              <span class="hero-stat-value">3</span>
+              <span class="hero-stat-label">routing paths</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-value">5</span>
+              <span class="hero-stat-label">attack classes</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-value">1,200</span>
+              <span class="hero-stat-label">synthetic trial documents</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-grid" id="problem">
+          <article class="panel">
+            <p class="eyebrow">The problem</p>
+            <h3>Clinical trial teams already use ChatGPT and Claude in real workflows.</h3>
+            <ul class="bullet-list">
+              <li>Staff paste SAE narratives, protocol excerpts, monitoring notes, and regulatory drafting content into consumer LLMs.</li>
+              <li>The risk is not just PHI. It also includes protocol IP, safety findings, and market-sensitive trial information.</li>
+              <li>Current defenses are weak tradeoffs: blocking hurts workflow, policy alone is ignored, and simple redaction often destroys utility.</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Why this matters</p>
+            <h3>Clinical trials are a uniquely good target for privacy mediation.</h3>
+            <ul class="bullet-list">
+              <li>Documents are standardized enough to model rigorously.</li>
+              <li>Workflows are identifiable: medical writing, PV, CRA review, protocol operations.</li>
+              <li>Sensitivity is mixed: patient privacy plus confidential trial strategy.</li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="solution" id="solution">
+          <div class="section-heading">
+            <p class="eyebrow">Our solution</p>
+            <h3>Mediate, don’t just block.</h3>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-card">
+              <span class="pipeline-step">1</span>
+              <h4>Sensitive trial text</h4>
+              <p>Raw SAE narratives, monitoring notes, and protocol fragments enter the local mediation layer.</p>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-card">
+              <span class="pipeline-step">2</span>
+              <h4>NGSP local filter</h4>
+              <p>Safe Harbor stripping, local Gemma routing, and privacy-aware transformation happen on device.</p>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-card">
+              <span class="pipeline-step">3</span>
+              <h4>Safe proxy to cloud</h4>
+              <p>The cloud LLM receives a mediated request, not the raw sensitive document.</p>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-card">
+              <span class="pipeline-step">4</span>
+              <h4>Local response reconstruction</h4>
+              <p>Original context is restored locally before the final output reaches the user.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="workspace-section" id="workspace">
+          <div class="section-heading">
+            <p class="eyebrow">Interactive demo</p>
+            <h3>NGSP console</h3>
+          </div>
+
+          <div class="console">
+            <aside class="console-sidebar">
+              <div class="sidebar-block">
+                <p class="sidebar-label">Scenarios</p>
+                <div class="scenario-list" id="scenario-list"></div>
+              </div>
+              <div class="sidebar-block subtle-block">
+                <p class="sidebar-label">Core principle</p>
+                <p>Different tasks need different privacy mechanisms.</p>
+              </div>
+            </aside>
+
+            <section class="console-center">
+              <div class="console-route" id="route-banner"></div>
+              <div class="console-docs">
+                <article class="doc-card">
+                  <div class="doc-head">
+                    <span>Original input</span>
+                    <span class="doc-chip doc-chip-alert">sensitive</span>
+                  </div>
+                  <p id="original-text"></p>
+                </article>
+                <article class="doc-card doc-card-safe">
+                  <div class="doc-head">
+                    <span>Outbound proxy</span>
+                    <span class="doc-chip doc-chip-safe">mediated</span>
+                  </div>
+                  <p id="proxy-text"></p>
+                </article>
+              </div>
+            </section>
+
+            <aside class="console-right">
+              <div class="sidebar-block">
+                <p class="sidebar-label">Assistant output</p>
+                <div class="response-list" id="assistant-response"></div>
+              </div>
+              <div class="sidebar-block">
+                <p class="sidebar-label">Privacy ledger</p>
+                <div class="ledger" id="privacy-ledger"></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="evaluation" id="evaluation">
+          <div class="section-heading">
+            <p class="eyebrow">Evaluation</p>
+            <h3>Privacy is treated as an attack problem, not a marketing claim.</h3>
+          </div>
+          <div class="attack-grid">
+            <article class="attack-card">
+              <h4>Verbatim leak</h4>
+              <p>Checks whether any sensitive span survives literally or fuzzily in the proxy.</p>
+            </article>
+            <article class="attack-card">
+              <h4>Similarity retrieval</h4>
+              <p>Measures whether the proxy remains semantically close enough for retrieval-based linkage.</p>
+            </article>
+            <article class="attack-card">
+              <h4>Trained inversion</h4>
+              <p>Tests whether an attacker can recover sensitive spans from proxy text alone.</p>
+            </article>
+            <article class="attack-card">
+              <h4>Membership inference</h4>
+              <p>Estimates whether a target entity can be inferred from the mediated output.</p>
+            </article>
+            <article class="attack-card">
+              <h4>Utility regression</h4>
+              <p>Measures whether the cloud answer remains useful relative to sending the raw input.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="footer-cta">
+          <div>
+            <p class="eyebrow">Closing idea</p>
+            <h3>The question is not whether AI will be used. It is what can safely leave the machine.</h3>
+            <p>
+              NGSP reframes LLM privacy from access control to controlled transformation for
+              high-stakes clinical trial workflows.
+            </p>
+          </div>
+          <a class="button button-primary" href="#workspace">Replay the demo</a>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+  </html>
