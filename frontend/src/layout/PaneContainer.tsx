@@ -26,11 +26,11 @@ const CollapsedStrip: React.FC<{ slot: PaneSlot; title: string; onExpand: () => 
   title,
   onExpand,
 }) => {
-  const icon = slot === "left" ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />;
+  const icon = slot === "left" ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />;
   return (
     <div
       style={{
-        width: 32,
+        width: 42,
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
@@ -44,8 +44,8 @@ const CollapsedStrip: React.FC<{ slot: PaneSlot; title: string; onExpand: () => 
         onClick={onExpand}
         title={`Expand ${slot} pane`}
         style={{
-          width: 32,
-          height: 32,
+          width: 42,
+          height: 42,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -61,7 +61,7 @@ const CollapsedStrip: React.FC<{ slot: PaneSlot; title: string; onExpand: () => 
       </button>
       <span
         style={{
-          fontSize: 10,
+          fontSize: 11,
           color: "#4b535b",
           writingMode: "vertical-rl",
           textOrientation: "mixed",
@@ -136,8 +136,8 @@ const ViewPicker: React.FC<{
               display: "block",
               width: "100%",
               textAlign: "left",
-              padding: "8px 14px",
-              fontSize: 12,
+              padding: "10px 16px",
+              fontSize: 13,
               background: isActive ? "rgba(255,255,255,0.05)" : "none",
               color: isActive ? "#ffffff" : "#7d848b",
               cursor: "pointer",
@@ -188,7 +188,7 @@ export const PaneContainer: React.FC<PaneContainerProps> = ({
     );
   }
 
-  const collapseIcon = slot === "left" ? <ChevronsLeft size={13} /> : <ChevronsRight size={13} />;
+  const collapseIcon = slot === "left" ? <ChevronsLeft size={17} /> : <ChevronsRight size={17} />;
 
   return (
     <div
@@ -207,12 +207,12 @@ export const PaneContainer: React.FC<PaneContainerProps> = ({
       {/* Pane header */}
       <div
         style={{
-          height: 36,
+          height: 46,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 10px",
+          padding: "0 12px",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
           background: "rgba(11,14,17,0.92)",
         }}
@@ -227,10 +227,10 @@ export const PaneContainer: React.FC<PaneContainerProps> = ({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
-              padding: "3px 8px",
+              gap: 7,
+              padding: "6px 10px",
               borderRadius: 8,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 500,
               color: "#b2bac2",
               background: "none",
@@ -241,7 +241,7 @@ export const PaneContainer: React.FC<PaneContainerProps> = ({
             }}
           >
             {def.title}
-            <ChevronDown size={11} style={{ opacity: 0.6, transform: pickerOpen ? "rotate(180deg)" : undefined, transition: "transform 150ms" }} />
+            <ChevronDown size={16} style={{ opacity: 0.6, transform: pickerOpen ? "rotate(180deg)" : undefined, transition: "transform 150ms" }} />
           </button>
           <ViewPicker
             slot={slot}
@@ -261,8 +261,8 @@ export const PaneContainer: React.FC<PaneContainerProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 24,
-            height: 24,
+            width: 34,
+            height: 34,
             borderRadius: 6,
             color: "#4b535b",
             background: "none",

@@ -1,5 +1,5 @@
 // Renders a DashboardSpec as a responsive CSS grid of visx-powered charts.
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Group } from "@visx/group";
 import { Bar, LinePath, BarStack } from "@visx/shape";
 import { AxisBottom, AxisLeft } from "@visx/axis";
@@ -14,12 +14,12 @@ import type { ChartSpec, ChartSeries, DashboardSpec } from "./types";
 // Constants
 // ---------------------------------------------------------------------------
 
-const CHART_H = 220;
-const MARGIN = { top: 16, right: 16, bottom: 40, left: 44 };
+const CHART_H = 280;
+const MARGIN = { top: 20, right: 20, bottom: 50, left: 54 };
 const AXIS_COLOR = "rgba(255,255,255,0.35)";
 const TICK_LABEL_PROPS = {
   fill: "rgba(255,255,255,0.55)",
-  fontSize: 10,
+  fontSize: 12,
   fontFamily: "JetBrains Mono, monospace",
 } as const;
 
@@ -567,26 +567,42 @@ export interface ChartGridProps {
   spec: DashboardSpec;
 }
 
-// Chooses CSS grid column count based on number of charts: 1 → 1col, 2-4 → 2col, 5+ → 3col.
-function gridColumns(n: number): number {
+// Chooses CSS grid column count based on chart count and available width.
+function gridColumns(n: number, width: number): number {
   if (n <= 1) return 1;
+  if (width < 760) return 1;
+  if (width < 1180) return Math.min(2, n);
   if (n <= 4) return 2;
   return 3;
 }
 
 // Renders a DashboardSpec as a responsive CSS grid of charts using visx renderers.
 export const ChartGrid: React.FC<ChartGridProps> = ({ spec }) => {
-  const cols = gridColumns(spec.charts.length);
-  // Approximate chart width: container minus padding divided by columns.
-  // Using a static approximation; ChartWrapper receives full column width conceptually.
-  const chartWidth = Math.floor((800 - cols * 16) / cols);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(900);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const updateWidth = () => setContainerWidth(Math.max(320, node.clientWidth));
+    updateWidth();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const cols = gridColumns(spec.charts.length, containerWidth);
+  const gap = 18;
+  const chartWidth = Math.max(320, Math.floor((containerWidth - gap * (cols - 1)) / cols) - 26);
 
   return (
     <div
+      ref={containerRef}
       style={{
         display: "grid",
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
-        gap: 16,
+        gap,
         padding: "4px 0",
       }}
     >

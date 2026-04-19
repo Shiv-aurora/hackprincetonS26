@@ -9,7 +9,9 @@ import type { ModelId } from "../../lib/demoDocument";
 import { DEMO_FILES } from "../../lib/demoDocument";
 
 // Wraps AssistantPanel so it can be mounted as a view inside the pane container.
-export const ChatView: React.FC<ViewProps> = () => {
+export const ChatView: React.FC<ViewProps & { uiMode?: "work" | "chat" }> = ({
+  uiMode = "work",
+}) => {
   const [selectedModel, setSelectedModel] = useState<ModelId>("claude-opus-4");
   const [routeDecision] = useState<RouteResponse | null>(null);
   const defaultFile = "SAE_Narrative_Draft_001.txt";
@@ -32,7 +34,7 @@ export const ChatView: React.FC<ViewProps> = () => {
       onModelChange={setSelectedModel}
       currentDocument={currentDocument}
       fileKey={defaultFile}
-      uiMode="work"
+      uiMode={uiMode}
       style={{ width: "100%", height: "100%", minWidth: 0 }}
     />
   );

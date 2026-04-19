@@ -30,32 +30,32 @@ export default function TitleBar({
     ?? "Untitled";
 
   return (
-    <header className="surface-header h-12 shrink-0 border-b border-white/[0.05] px-4 md:px-5">
+    <header className="surface-header h-14 shrink-0 border-b border-white/[0.05] px-5 md:px-6">
       <div className="flex h-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#13324a] text-[#d8ecff] shadow-[0_8px_24px_rgba(6,23,38,0.45)]">
-            <Layout size={13} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#13324a] text-[#d8ecff] shadow-[0_8px_24px_rgba(6,23,38,0.45)]">
+            <Layout size={18} />
           </div>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold tracking-[0.02em] text-white">Asclepius</div>
-            <div className="truncate text-[10.5px] text-[#6d7680]">{displayLabel}</div>
+            <div className="text-[14px] font-semibold tracking-[0.02em] text-white">Asclepius</div>
+            <div className="truncate text-[12px] text-[#6d7680]">{displayLabel}</div>
           </div>
         </div>
 
         <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-          <div className="truncate text-[11px] uppercase tracking-[0.18em] text-[#4b525a]">Clinical privacy workspace</div>
+          <div className="truncate text-[12px] uppercase tracking-[0.18em] text-[#4b525a]">Clinical privacy workspace</div>
         </div>
 
         <div className="flex items-center gap-3">
           <div
-            className="flex items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[10.5px] font-mono tabular"
+            className="flex items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2 text-[12px] font-mono tabular"
             title={
               auditStats
                 ? `${auditStats.total_requests} requests · ${auditStats.proxied} proxied`
                 : "Entity counts for loaded document"
             }
           >
-            <ShieldCheck size={11} className="text-tertiary/80" />
+            <ShieldCheck size={16} className="text-tertiary/80" />
             <span className="text-phi">{phiCount}</span>
             <span className="text-[#2f353b]">·</span>
             <span className="text-ip">{ipCount}</span>
@@ -97,7 +97,7 @@ function ModeToggle({
           <button
             key={option.id}
             onClick={() => onModeChange(option.id)}
-            className={`relative z-10 flex min-w-[84px] items-center justify-center gap-2 rounded-xl px-3 py-1.5 text-[11.5px] font-medium transition-colors ${
+            className={`relative z-10 flex min-w-[98px] items-center justify-center gap-2.5 rounded-xl px-4 py-2 text-[13px] font-medium transition-colors ${
               active ? "text-white" : "text-[#6b7178] hover:text-[#c6cbd1]"
             }`}
           >
@@ -108,7 +108,7 @@ function ModeToggle({
                 transition={{ type: "spring", stiffness: 360, damping: 30 }}
               />
             )}
-            <Icon size={12} className="relative z-10" />
+            <Icon size={17} className="relative z-10" />
             <span className="relative z-10">{option.label}</span>
           </button>
         );

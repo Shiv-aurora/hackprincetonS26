@@ -3,7 +3,7 @@ import { Stethoscope, Activity, Pill, FlaskConical, HeartPulse, Settings, UserRo
 import { useLayoutState } from "../layout/useLayoutState";
 import { useAuth } from "../lib/auth";
 
-// Renders the 48 px activity bar with persona switchers and disabled production icons.
+// Renders the activity bar with persona switchers and disabled production icons.
 export default function ActivityBar() {
   const { persona, setPersona } = useLayoutState();
   const { user, signOut } = useAuth();
@@ -50,7 +50,7 @@ export default function ActivityBar() {
   return (
     <nav
       className="surface-left flex shrink-0 flex-col items-center border-r border-white/[0.05] py-2 z-40"
-      style={{ width: 48 }}
+      style={{ width: 60 }}
     >
       <div className="flex w-full flex-col gap-2">
         {navItems.map((item) => {
@@ -62,7 +62,7 @@ export default function ActivityBar() {
               key={item.id}
               onClick={item.personaTarget !== null ? () => setPersona(item.personaTarget!) : undefined}
               title={item.label}
-              className={`relative flex w-full items-center justify-center py-3 transition-all duration-150 ${
+              className={`relative flex w-full items-center justify-center py-3.5 transition-all duration-150 ${
                 isActive
                   ? "text-white opacity-100"
                   : item.disabled
@@ -73,9 +73,9 @@ export default function ActivityBar() {
               aria-label={item.label}
               aria-pressed={isActive}
             >
-              <Icon size={21} strokeWidth={1.5} />
+              <Icon size={26} strokeWidth={1.5} />
               {isActive && (
-                <div className="absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-full bg-[#85c8ff] opacity-80" />
+                <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full bg-[#85c8ff] opacity-80" />
               )}
             </button>
           );
@@ -85,27 +85,27 @@ export default function ActivityBar() {
       <div className="mt-auto flex w-full flex-col items-center gap-2 pb-2">
         <button
           title={user ? `Signed in as ${user.email}` : "User profile"}
-          className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"
+          className="p-2.5 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"
           aria-label="User profile"
         >
-          <UserRound size={21} strokeWidth={1.5} />
+          <UserRound size={25} strokeWidth={1.5} />
         </button>
         {user && (
           <button
             title="Sign out"
             onClick={() => signOut()}
-            className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#f48771]"
+            className="p-2.5 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#f48771]"
             aria-label="Sign out"
           >
-            <LogOut size={18} strokeWidth={1.5} />
+            <LogOut size={23} strokeWidth={1.5} />
           </button>
         )}
         <button
           title="Settings"
-          className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"
+          className="p-2.5 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"
           aria-label="Settings"
         >
-          <Settings size={21} strokeWidth={1.5} />
+          <Settings size={25} strokeWidth={1.5} />
         </button>
       </div>
     </nav>

@@ -121,13 +121,16 @@ const ExportChip: React.FC<{
   auditRef: string;
 }> = ({ def, auditRef }) => {
   const [chipState, setChipState] = useState<ChipState>("idle");
+  const [chipMessage, setChipMessage] = useState<string | undefined>(undefined);
 
   // Dispatch the MCP action and handle all result states.
   const handleClick = useCallback(async () => {
     if (chipState !== "idle") return;
     setChipState("sending");
+    setChipMessage(undefined);
     try {
       const result = await def.dispatch(def.action, auditRef);
+      setChipMessage(result.receipt.message);
       if (result.status === "sent") {
         setChipState("success");
         setTimeout(() => setChipState("idle"), 3000);
@@ -138,6 +141,7 @@ const ExportChip: React.FC<{
         setTimeout(() => setChipState("idle"), 2000);
       }
     } catch {
+      setChipMessage("Connector request failed before a receipt was returned.");
       setChipState("error");
       setTimeout(() => setChipState("idle"), 2000);
     }
@@ -148,15 +152,12 @@ const ExportChip: React.FC<{
     chipState === "not_configured" ||
     chipState === "success";
 
-  const tooltipText =
-    chipState === "not_configured"
-      ? `Connector not configured. Set MCP_${def.action.toUpperCase()}_URL env var.`
-      : undefined;
+  const tooltipText = chipMessage;
 
   const chipStyle: React.CSSProperties = {
     borderRadius: 999,
-    padding: "4px 12px",
-    fontSize: 12,
+    padding: "8px 14px",
+    fontSize: 13,
     fontFamily: "var(--font-sans)",
     border: "1px solid rgba(255,255,255,0.08)",
     background: chipBackground(chipState),
@@ -198,9 +199,9 @@ export const ExportActions: React.FC<ExportActionsProps> = ({
     <div
       style={{
         display: "flex",
-        gap: 8,
+        gap: 10,
         flexWrap: "wrap",
-        marginTop: 12,
+        marginTop: 16,
       }}
     >
       {chips.map((chip) => (

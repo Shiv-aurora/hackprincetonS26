@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,22 +49,23 @@ def _ensure_dataset_loaded() -> None:
     if _DATASET_LOADED:
         return
     try:
-        from data.synthetic_sae import generate_sae_corpus
+        from data.synthetic_sae import generate_sae_narratives
 
-        corpus = generate_sae_corpus(50)
+        corpus = generate_sae_narratives(50)
         rows: list[dict[str, Any]] = []
         for i, doc in enumerate(corpus):
             text = doc.text if hasattr(doc, "text") else str(doc)
+            metadata = getattr(doc, "metadata", {})
             # Extract fields from the SAENarrative dataclass if available.
             row: dict[str, Any] = {
-                "doc_id": f"SAE-{i + 1:04d}",
-                "site": _extract_field(doc, "site_id", f"SITE-{(i % 5) + 1}"),
-                "subject": _extract_field(doc, "patient_id", f"SUBJ-{i + 1:04d}"),
-                "ae": _extract_field(doc, "ae", "Thrombocytopenia"),
-                "grade": _extract_field(doc, "grade", (i % 4) + 1),
-                "onset_day": _extract_field(doc, "onset_day", (i % 28) + 1),
-                "dose_mg": _extract_field(doc, "dose", 50.0),
-                "outcome": _extract_field(doc, "outcome", "Resolved"),
+                "doc_id": getattr(doc, "doc_id", f"SAE-{i + 1:04d}"),
+                "site": _span_value(doc, "site_id", f"SITE-{(i % 5) + 1}"),
+                "subject": _span_value(doc, "other_unique_id", f"SUBJ-{i + 1:04d}"),
+                "ae": metadata.get("ae_category", "Thrombocytopenia"),
+                "grade": _grade_int(metadata.get("grade", (i % 4) + 1)),
+                "onset_day": (i % 28) + 1,
+                "dose_mg": _dose_float(_span_value(doc, "dose", "50mg")),
+                "outcome": _outcome(text),
             }
             rows.append(row)
         _DATASET.extend(rows)
@@ -85,6 +87,28 @@ def _ensure_dataset_loaded() -> None:
 # Extract a named attribute from a dataclass/object with a fallback default.
 def _extract_field(obj: Any, name: str, default: Any) -> Any:
     return getattr(obj, name, default)
+
+
+def _span_value(obj: Any, category: str, default: str) -> str:
+    for span in getattr(obj, "spans", []):
+        if getattr(getattr(span, "category", None), "value", None) == category:
+            return str(getattr(span, "value", default))
+    return default
+
+
+def _grade_int(value: Any) -> int:
+    match = re.search(r"[1-5]", str(value))
+    return int(match.group(0)) if match else 1
+
+
+def _dose_float(value: Any) -> float:
+    match = re.search(r"\d+(?:\.\d+)?", str(value))
+    return float(match.group(0)) if match else 50.0
+
+
+def _outcome(text: str) -> str:
+    match = re.search(r"outcome is reported as ([^.]+)", text, flags=re.IGNORECASE)
+    return match.group(1).strip() if match else "Resolved"
 
 
 # Write one hashed audit line for a dataset query (counts only, no raw cell values).

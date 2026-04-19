@@ -40,7 +40,7 @@ export const DashboardView: React.FC<ViewProps> = () => {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          padding: "10px 12px",
+          padding: "14px 16px",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
           background: "rgba(255,255,255,0.02)",
           flexShrink: 0,
@@ -58,8 +58,8 @@ export const DashboardView: React.FC<ViewProps> = () => {
             border: "1px solid rgba(255,255,255,0.12)",
             borderRadius: 6,
             color: "#d4d9df",
-            padding: "6px 12px",
-            fontSize: 13,
+            padding: "10px 14px",
+            fontSize: 15,
             fontFamily: "inherit",
             outline: "none",
           }}
@@ -75,8 +75,8 @@ export const DashboardView: React.FC<ViewProps> = () => {
             border: "none",
             borderRadius: 6,
             color: "#fff",
-            padding: "6px 16px",
-            fontSize: 13,
+            padding: "10px 20px",
+            fontSize: 15,
             fontFamily: "inherit",
             cursor: loading || !inputValue.trim() ? "not-allowed" : "pointer",
             opacity: loading || !inputValue.trim() ? 0.6 : 1,
@@ -106,12 +106,12 @@ export const DashboardView: React.FC<ViewProps> = () => {
       )}
 
       {/* ── Main scrollable content area ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
         {/* Loading state */}
         {loading && (
           <div
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: "rgba(255,255,255,0.4)",
               fontFamily: "JetBrains Mono, monospace",
               padding: "8px 0",
@@ -125,7 +125,7 @@ export const DashboardView: React.FC<ViewProps> = () => {
         {error && !isPhiError && (
           <div
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: "var(--color-error, #f48771)",
               fontFamily: "JetBrains Mono, monospace",
               padding: "8px 0",
@@ -142,7 +142,7 @@ export const DashboardView: React.FC<ViewProps> = () => {
             {/* Dashboard title */}
             <div
               style={{
-                fontSize: 14,
+                fontSize: 18,
                 fontWeight: 600,
                 color: "#d4d9df",
                 marginBottom: 14,
@@ -164,14 +164,14 @@ export const DashboardView: React.FC<ViewProps> = () => {
                   background: "rgba(255,255,255,0.02)",
                   border: "1px solid rgba(255,255,255,0.06)",
                   borderRadius: 6,
-                  fontSize: 13,
+                  fontSize: 15,
                   color: "rgba(255,255,255,0.6)",
                   lineHeight: 1.7,
                 }}
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     color: "rgba(255,255,255,0.3)",
@@ -205,7 +205,7 @@ export const DashboardView: React.FC<ViewProps> = () => {
           >
             <div
               style={{
-                fontSize: 12,
+                fontSize: 14,
                 color: "rgba(255,255,255,0.25)",
                 fontFamily: "JetBrains Mono, monospace",
                 textAlign: "center",
