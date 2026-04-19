@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useRef, useEffect, useState, useCallback, type ReactNode, type MouseEvent, type Key } from "react";
 import * as d3 from "d3";
+import { AnimatePresence, motion } from "framer-motion";
 import type { EntityItem, ProxyResponse, AuditLogEntry, RouteResponse } from "../lib/api";
 import { DEMO_FILES, formatFileName } from "../lib/demoDocument";
 
@@ -105,10 +106,10 @@ export default function Workspace({
   const totalCount = entities.length;
 
   return (
-    <section className="flex-1 flex flex-col min-w-0 bg-surface overflow-hidden">
+    <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
 
       {/* ── Tab bar ───────────────────────────────────────────────────────── */}
-      <div className="h-[34px] flex bg-[#0f0f0f] overflow-x-auto shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+      <div className="surface-toolbar flex h-[36px] shrink-0 overflow-x-auto border-b border-white/[0.04]">
         {openFiles.map((name) => (
           <Tab
             key={name}
@@ -123,8 +124,24 @@ export default function Workspace({
       </div>
 
       {/* ── Mode toolbar ──────────────────────────────────────────────────── */}
-      <div className="h-9 flex items-center justify-between px-3 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.035)", background: "rgba(15,15,15,0.7)" }}>
-        <div className="flex items-center gap-0.5">
+      <div className="surface-toolbar shrink-0 border-b border-white/[0.04] px-4 py-3">
+        <div className="flex items-center justify-between gap-4 mb-2.5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-[#4c4c4c] font-semibold mb-1">Workspace</p>
+          </div>
+          {viewMode === 1 && (
+            <button
+              onClick={onToggleSync}
+              className={`text-[11px] flex items-center gap-2 transition-colors duration-150 px-3 py-2 rounded-xl ${
+                syncScroll ? "surface-accent text-primary-fixed" : "surface-soft text-[#7d8790]"
+              }`}
+            >
+              <RefreshCcw size={12} />
+              Sync panes
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
           {VIEW_MODES.map((m) => {
             const Icon = m.icon;
             const active = viewMode === m.id;
@@ -133,34 +150,23 @@ export default function Workspace({
                 key={m.id}
                 onClick={() => setViewMode(m.id)}
                 title={m.tooltip}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10.5px] font-medium transition-all duration-150 select-none ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-[11.5px] font-medium transition-all duration-150 select-none ${
                   active
-                    ? "bg-white/[0.07] text-[#c8c8c8]"
-                    : "text-[#3a3a3a] hover:text-[#777] hover:bg-white/[0.03]"
+                    ? "surface-accent text-[#dff1ff] shadow-[0_12px_30px_rgba(0,120,212,0.18)]"
+                    : "surface-soft text-[#74808a] hover:text-[#d4d9df]"
                 }`}
               >
-                <Icon size={10} />
-                {m.label}
+                <Icon size={12} />
+                <span>{m.label}</span>
               </button>
             );
           })}
         </div>
-        {viewMode === 1 && (
-          <button
-            onClick={onToggleSync}
-            className={`text-[10px] flex items-center gap-1.5 transition-colors duration-150 px-2 py-1 rounded ${
-              syncScroll ? "text-primary-fixed/50" : "text-[#2a2a2a]"
-            }`}
-          >
-            <RefreshCcw size={9} />
-            Sync
-          </button>
-        )}
       </div>
 
       {/* ── "What would have leaked" banner ─────────────────────────────── */}
       {viewMode === 1 && !bannerDismissed && totalCount > 0 && !isLoading && (
-        <div className="shrink-0 glass-warning">
+        <div className="surface-alert shrink-0">
           <div className="flex items-center gap-2 px-4 py-1.5">
             <ShieldAlert size={11} className="text-[#f48771] shrink-0" />
             <span className="text-[11px] text-[#e0907b] flex-1 leading-snug">
@@ -195,30 +201,42 @@ export default function Workspace({
 
       {/* ── View content ──────────────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {viewMode === 1 && (
-          <ComparisonView
-            text={text} proxyText={proxyText} entityMap={entityMap}
-            entities={entities} isLoading={isLoading}
-            syncScroll={syncScroll}
-            hoveredPlaceholder={hoveredPlaceholder}
-            onHoverPlaceholder={onHoverPlaceholder}
-          />
-        )}
-        {viewMode === 2 && (
-          <HeatmapView
-            text={text} entities={entities} isLoading={isLoading}
-            phiCount={phiCount} ipCount={ipCount} mnpiCount={mnpiCount}
-          />
-        )}
-        {viewMode === 3 && (
-          <ForceGraphView entities={entities} text={text} isLoading={isLoading} />
-        )}
-        {viewMode === 4 && (
-          <RoutingView text={text} entities={entities} isLoading={isLoading} />
-        )}
-        {viewMode === 5 && (
-          <AuditTimelineView auditLog={auditLog} />
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {viewMode === 1 && (
+            <motion.div key="compare-view" className="flex-1 min-h-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.24 }}>
+              <ComparisonView
+                text={text} proxyText={proxyText} entityMap={entityMap}
+                entities={entities} isLoading={isLoading}
+                syncScroll={syncScroll}
+                hoveredPlaceholder={hoveredPlaceholder}
+                onHoverPlaceholder={onHoverPlaceholder}
+              />
+            </motion.div>
+          )}
+          {viewMode === 2 && (
+            <motion.div key="heatmap-view" className="flex-1 min-h-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.24 }}>
+              <HeatmapView
+                text={text} entities={entities} isLoading={isLoading}
+                phiCount={phiCount} ipCount={ipCount} mnpiCount={mnpiCount}
+              />
+            </motion.div>
+          )}
+          {viewMode === 3 && (
+            <motion.div key="graph-view" className="flex-1 min-h-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.24 }}>
+              <ForceGraphView entities={entities} text={text} isLoading={isLoading} />
+            </motion.div>
+          )}
+          {viewMode === 4 && (
+            <motion.div key="routing-view" className="flex-1 min-h-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.24 }}>
+              <RoutingView text={text} entities={entities} isLoading={isLoading} />
+            </motion.div>
+          )}
+          {viewMode === 5 && (
+            <motion.div key="audit-view" className="flex-1 min-h-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.24 }}>
+              <AuditTimelineView auditLog={auditLog} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
@@ -249,15 +267,15 @@ function ComparisonView({
   }, [syncScroll]);
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex flex-1 overflow-hidden">
       {/* Original */}
       <div ref={originalRef} className="flex-1 overflow-y-auto">
         <div className="p-6 pr-8">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-1 rounded-full bg-tertiary/60" />
-            <span className="text-[9.5px] text-[#3a3a3a] uppercase tracking-widest font-semibold">Original</span>
+            <span className="text-[10px] text-[#69737d] uppercase tracking-widest font-semibold">Original</span>
           </div>
-          <div className="max-w-2xl">
+          <div className="surface-card max-w-3xl rounded-[26px] px-6 py-5">
             {isLoading ? <Skeleton /> : (
               <p className="doc-text">
                 {renderHighlightedText(text, entities, hoveredPlaceholder, onHoverPlaceholder)}
@@ -271,19 +289,19 @@ function ComparisonView({
       <div className="w-px shrink-0" style={{ background: "rgba(255,255,255,0.04)" }} />
 
       {/* Proxy */}
-      <div ref={proxiedRef} className="flex-1 overflow-y-auto" style={{ background: "rgba(10,10,10,0.5)" }}>
+      <div ref={proxiedRef} className="flex-1 overflow-y-auto bg-[#14171b]">
         <div className="p-6 pr-8">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-1 rounded-full bg-[#4a4a4a]" />
-            <span className="text-[9.5px] text-[#2e2e2e] uppercase tracking-widest font-semibold">NGSP Proxy — safe version</span>
+            <span className="text-[10px] text-[#69737d] uppercase tracking-widest font-semibold">Proxy</span>
           </div>
-          <div className="max-w-2xl">
+          <div className="surface-soft max-w-3xl rounded-[26px] px-6 py-5">
             {isLoading ? <Skeleton dim /> : proxyText ? (
-              <p className="doc-text text-[#4a4a4a]">
+              <p className="doc-text text-[#a2acb6]">
                 {renderProxyText(proxyText, entityMap, hoveredPlaceholder, onHoverPlaceholder)}
               </p>
             ) : (
-              <p className="text-[#2a2a2a] text-[11px] italic">Proxy will appear here once loaded…</p>
+              <p className="text-[#596069] text-[11px] italic">Proxy will appear here once loaded…</p>
             )}
           </div>
         </div>
@@ -318,60 +336,91 @@ function HeatmapView({
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="max-w-4xl mb-6 grid grid-cols-1 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total exposed", value: total, tone: "text-[#ffd5cc]" },
+          { label: "PHI", value: phiCount, tone: "text-phi" },
+          { label: "IP", value: ipCount, tone: "text-ip" },
+          { label: "MNPI", value: mnpiCount, tone: "text-mnpi" },
+        ].map((card) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="surface-card rounded-[24px] px-4 py-4"
+          >
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[#535353] font-semibold mb-2">{card.label}</p>
+            <p className={`text-[28px] leading-none font-semibold ${card.tone}`}>{card.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
       {/* Leak counter */}
-      <div className="max-w-2xl mb-6 p-4 glass-warning rounded-2xl">
-        <p className="text-[15px] font-semibold text-[#e0907b] leading-snug mb-2">
+      <div className="max-w-4xl mb-6 p-5 glass-warning rounded-[26px]">
+        <p className="text-[17px] font-semibold text-[#ffd5cc] leading-snug mb-2">
           {total > 0 ? `${total} sensitive items would be exposed to an unprotected LLM` : "No sensitive items detected in this document."}
         </p>
         {total > 0 && (
-          <div className="flex gap-5 mt-1">
-            {phiCount > 0 && <span className="text-[12px] text-phi font-semibold">{phiCount} PHI</span>}
-            {ipCount > 0 && <span className="text-[12px] text-ip font-semibold">{ipCount} IP</span>}
-            {mnpiCount > 0 && <span className="text-[12px] text-mnpi font-semibold">{mnpiCount} MNPI</span>}
+          <div className="flex gap-5 mt-1 text-[13px]">
+            {phiCount > 0 && <span className="text-phi font-semibold">{phiCount} PHI</span>}
+            {ipCount > 0 && <span className="text-ip font-semibold">{ipCount} IP</span>}
+            {mnpiCount > 0 && <span className="text-mnpi font-semibold">{mnpiCount} MNPI</span>}
           </div>
         )}
       </div>
 
       {/* Heatmap segments */}
-      <div className="max-w-2xl space-y-2">
+      <div className="max-w-4xl space-y-3">
         {segments.map((seg, i) => {
           const segEntities = densities[i];
           const intensity = segEntities.length / maxDensity;
-          // D3 color scale: neutral → warm red
-          const bg = d3.interpolateRgb("rgba(0,0,0,0)", "rgba(160,30,30,0.38)")(intensity);
+          const bg = d3.interpolateRgb("rgba(255,255,255,0.025)", "rgba(160,30,30,0.55)")(intensity);
           const hasPhi = segEntities.some((e) => e.category === "phi");
           const hasIp = segEntities.some((e) => e.category === "ip");
           const hasMnpi = segEntities.some((e) => e.category === "mnpi");
 
           return (
-            <div
+            <motion.div
               key={i}
-              className="px-4 py-3 rounded-xl transition-all duration-300 relative"
-              style={{ background: bg }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.2 }}
+              className="px-5 py-4 rounded-[24px] transition-all duration-300 relative border border-white/[0.05] overflow-hidden"
+              style={{ background: bg, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}
             >
-              <p className="doc-text pr-20">
+              <motion.div
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{ background: "linear-gradient(180deg, #4fc1ff, #f48771)" }}
+                animate={{ opacity: [0.45, 1, 0.45] }}
+                transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.08 }}
+              />
+              <p className="doc-text pr-28">
                 {renderHighlightedSegment(seg.text, segEntities, seg.start)}
               </p>
               {segEntities.length > 0 && (
-                <div className="absolute right-3 top-3 flex gap-1">
-                  {hasPhi && <span className="w-1.5 h-1.5 rounded-full bg-phi" title="PHI" />}
-                  {hasIp && <span className="w-1.5 h-1.5 rounded-full bg-ip" title="IP" />}
-                  {hasMnpi && <span className="w-1.5 h-1.5 rounded-full bg-mnpi" title="MNPI" />}
-                  <span className="text-[9px] text-[#666] font-mono ml-1">{segEntities.length}</span>
+                <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
+                  <div className="flex gap-1.5">
+                    {hasPhi && <span className="w-2 h-2 rounded-full bg-phi shadow-[0_0_12px_rgba(206,145,120,0.55)]" title="PHI" />}
+                    {hasIp && <span className="w-2 h-2 rounded-full bg-ip shadow-[0_0_12px_rgba(79,193,255,0.55)]" title="IP" />}
+                    {hasMnpi && <span className="w-2 h-2 rounded-full bg-mnpi shadow-[0_0_12px_rgba(220,220,170,0.55)]" title="MNPI" />}
+                  </div>
+                  <div className="surface-soft rounded-xl px-2.5 py-1.5 text-[10px] text-[#d7d7d7] font-mono">
+                    risk {segEntities.length}
+                  </div>
                 </div>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
       {/* Legend */}
-      <div className="max-w-2xl mt-6 flex items-center gap-4 text-[10px] text-[#333]">
+      <div className="max-w-4xl mt-6 flex items-center gap-4 text-[11px] text-[#68717a]">
         <div className="flex items-center gap-2">
-          <div className="w-16 h-2 rounded-full" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0), rgba(160,30,30,0.38))" }} />
+          <div className="w-20 h-2 rounded-full" style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.03), rgba(160,30,30,0.55))" }} />
           <span>low → high sensitivity</span>
         </div>
-        <span className="text-[#222]">·</span>
+        <span className="text-[#384049]">·</span>
         <span>Colored dots = sensitivity tier</span>
       </div>
     </div>
@@ -394,20 +443,6 @@ function ForceGraphView({ entities, text, isLoading }: { entities: EntityItem[];
     const W = containerRef.current.clientWidth;
     const H = containerRef.current.clientHeight;
     svg.attr("width", W).attr("height", H);
-
-    // Glow filter
-    const defs = svg.append("defs");
-    const filter = defs.append("filter").attr("id", "node-glow").attr("x", "-60%").attr("y", "-60%").attr("width", "220%").attr("height", "220%");
-    filter.append("feGaussianBlur").attr("stdDeviation", "5").attr("result", "coloredBlur");
-    const merge = filter.append("feMerge");
-    merge.append("feMergeNode").attr("in", "coloredBlur");
-    merge.append("feMergeNode").attr("in", "SourceGraphic");
-
-    const filterEdge = defs.append("filter").attr("id", "edge-glow");
-    filterEdge.append("feGaussianBlur").attr("stdDeviation", "2").attr("result", "coloredBlur");
-    const merge2 = filterEdge.append("feMerge");
-    merge2.append("feMergeNode").attr("in", "coloredBlur");
-    merge2.append("feMergeNode").attr("in", "SourceGraphic");
 
     // Build nodes (unique entities)
     const nodeMap = new Map<string, GraphNode>();
@@ -438,43 +473,89 @@ function ForceGraphView({ entities, text, isLoading }: { entities: EntityItem[];
       return { source, target, count } as GraphLink;
     });
 
-    // Simulation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sim = d3.forceSimulation<any>(nodes)
-      .force("link", d3.forceLink<GraphNode, GraphLink>(links as GraphLink[]).id((d: GraphNode) => d.id).distance(130).strength(0.4))
-      .force("charge", d3.forceManyBody().strength(-280))
-      .force("center", d3.forceCenter(W / 2, H / 2).strength(0.05))
-      .force("collision", d3.forceCollide(48));
+    const marginX = 120;
+    const marginY = 110;
+    const clusterX: Record<GraphNode["category"], number> = {
+      phi: W * 0.22,
+      ip: W * 0.5,
+      mnpi: W * 0.78,
+    };
+    const clusterY: Record<GraphNode["category"], number> = {
+      phi: H * 0.46,
+      ip: H * 0.34,
+      mnpi: H * 0.58,
+    };
+
+    nodes.forEach((node, index) => {
+      const jitter = ((index % 5) - 2) * 14;
+      node.x = clusterX[node.category] + jitter;
+      node.y = clusterY[node.category] + jitter;
+    });
 
     const g = svg.append("g");
+    const zoneData = [
+      { id: "phi", label: "PHI cluster", x: 24, y: 54, w: W / 3 - 34, h: H - 112 },
+      { id: "ip", label: "IP cluster", x: W / 3 + 10, y: 26, w: W / 3 - 20, h: H - 80 },
+      { id: "mnpi", label: "MNPI cluster", x: (W / 3) * 2 + 10, y: 54, w: W / 3 - 34, h: H - 112 },
+    ];
 
-    // Zoom + pan
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    svg.call((d3.zoom<SVGSVGElement, unknown>() as any)
-      .scaleExtent([0.3, 4])
-      .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => g.attr("transform", event.transform.toString()))
-    );
+    g.append("g")
+      .selectAll("rect")
+      .data(zoneData)
+      .join("rect")
+      .attr("x", (d) => d.x)
+      .attr("y", (d) => d.y)
+      .attr("rx", 28)
+      .attr("ry", 28)
+      .attr("width", (d) => Math.max(0, d.w))
+      .attr("height", (d) => Math.max(0, d.h))
+      .attr("fill", "rgba(255,255,255,0.018)")
+      .attr("stroke", "rgba(255,255,255,0.045)");
 
-    // Edge lines
-    const linkG = g.append("g");
+    g.append("g")
+      .selectAll("text")
+      .data(zoneData)
+      .join("text")
+      .attr("x", (d) => d.x + 18)
+      .attr("y", (d) => d.y + 20)
+      .attr("fill", "#5f6973")
+      .attr("font-size", "10.5")
+      .attr("font-weight", "600")
+      .attr("letter-spacing", "0.18em")
+      .text((d) => d.label.toUpperCase());
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const linkEl = linkG.selectAll<SVGLineElement, any>("line")
+    const sim = d3.forceSimulation<any>(nodes)
+      .force("link", d3.forceLink<GraphNode, GraphLink>(links as GraphLink[]).id((d: GraphNode) => d.id).distance(88).strength(0.28))
+      .force("charge", d3.forceManyBody().strength(-72))
+      .force("x", d3.forceX<GraphNode>((d) => clusterX[d.category]).strength(0.28))
+      .force("y", d3.forceY<GraphNode>((d) => clusterY[d.category]).strength(0.22))
+      .force("collision", d3.forceCollide(34))
+      .force("center", d3.forceCenter(W / 2, H / 2).strength(0.08))
+      .alpha(0.95)
+      .alphaDecay(0.06);
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.85, 1.8])
+      .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        g.attr("transform", event.transform.toString());
+      });
+    svg.call(zoom);
+
+    const linkEl = g.append("g")
+      .selectAll<SVGLineElement, GraphLink>("line")
       .data(links)
       .join("line")
-      .attr("stroke", "rgba(255,255,255,0.06)")
-      .attr("stroke-width", (d: GraphLink) => Math.max(1, (d.count) * 1.2))
-      .attr("filter", "url(#edge-glow)");
+      .attr("stroke", "rgba(186,196,208,0.18)")
+      .attr("stroke-width", (d: GraphLink) => Math.min(3.2, 1 + d.count * 0.7));
 
-    // Node groups
-    const nodeG = g.append("g");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nodeEl = nodeG.selectAll<SVGGElement, any>("g")
+    const nodeEl = g.append("g")
+      .selectAll<SVGGElement, GraphNode>("g")
       .data(nodes)
       .join("g")
       .attr("cursor", "grab")
       .call(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (d3.drag<SVGGElement, any>() as any)
+        d3.drag<SVGGElement, GraphNode>()
           .on("start", (event: d3.D3DragEvent<SVGGElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (!event.active) sim.alphaTarget(0.3).restart();
             d.fx = d.x; d.fy = d.y;
@@ -488,40 +569,34 @@ function ForceGraphView({ entities, text, isLoading }: { entities: EntityItem[];
           })
       );
 
-    // Outer glow ring
     nodeEl.append("circle")
-      .attr("r", 28)
-      .attr("fill", (d: GraphNode) => CATEGORY_COLOR[d.category] + "12")
-      .attr("filter", "url(#node-glow)");
+      .attr("r", 25)
+      .attr("fill", (d: GraphNode) => CATEGORY_COLOR[d.category] + "12");
 
-    // Main circle
     nodeEl.append("circle")
-      .attr("r", 22)
+      .attr("r", 18)
       .attr("fill", (d: GraphNode) => CATEGORY_COLOR[d.category] + "18")
       .attr("stroke", (d: GraphNode) => CATEGORY_COLOR[d.category])
-      .attr("stroke-width", 1.5);
+      .attr("stroke-width", 1.4);
 
-    // Label
     nodeEl.append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "-0.15em")
-      .attr("font-size", "9.5")
+      .attr("font-size", "9")
       .attr("font-family", "Inter, sans-serif")
       .attr("fill", (d: GraphNode) => CATEGORY_COLOR[d.category])
       .attr("pointer-events", "none")
-      .text((d: GraphNode) => (d.label.length > 13 ? d.label.slice(0, 13) + "…" : d.label));
+      .text((d: GraphNode) => (d.label.length > 11 ? d.label.slice(0, 11) + "…" : d.label));
 
-    // Category tag
     nodeEl.append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "1.6em")
-      .attr("font-size", "7")
+      .attr("font-size", "6.5")
       .attr("font-family", "Inter, sans-serif")
       .attr("fill", (d: GraphNode) => CATEGORY_COLOR[d.category] + "70")
       .attr("pointer-events", "none")
       .text((d: GraphNode) => d.category.toUpperCase());
 
-    // Hover
     nodeEl
       .on("mouseenter", (event: MouseEvent, d: GraphNode) => {
         const rect = (event.target as Element).closest("svg")?.getBoundingClientRect();
@@ -536,14 +611,21 @@ function ForceGraphView({ entities, text, isLoading }: { entities: EntityItem[];
       })
       .on("mouseleave", () => setTooltip(null));
 
-    // Tick
     sim.on("tick", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const minX = marginX;
+      const maxX = W - marginX;
+      const minY = marginY;
+      const maxY = H - marginY;
+      nodes.forEach((node) => {
+        node.x = Math.max(minX, Math.min(maxX, node.x ?? clusterX[node.category]));
+        node.y = Math.max(minY, Math.min(maxY, node.y ?? clusterY[node.category]));
+      });
+
       linkEl
-        .attr("x1", (d: any) => d.source.x ?? 0)
-        .attr("y1", (d: any) => d.source.y ?? 0)
-        .attr("x2", (d: any) => d.target.x ?? 0)
-        .attr("y2", (d: any) => d.target.y ?? 0);
+        .attr("x1", (d) => (typeof d.source === "object" ? d.source.x ?? 0 : 0))
+        .attr("y1", (d) => (typeof d.source === "object" ? d.source.y ?? 0 : 0))
+        .attr("x2", (d) => (typeof d.target === "object" ? d.target.x ?? 0 : 0))
+        .attr("y2", (d) => (typeof d.target === "object" ? d.target.y ?? 0 : 0));
       nodeEl.attr("transform", (d: GraphNode) => `translate(${d.x ?? 0},${d.y ?? 0})`);
     });
 
@@ -555,35 +637,37 @@ function ForceGraphView({ entities, text, isLoading }: { entities: EntityItem[];
   }
 
   return (
-    <div ref={containerRef} className="flex-1 relative overflow-hidden">
+    <div ref={containerRef} className="relative flex-1 overflow-hidden px-5 py-5">
       {entities.length === 0 ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#2a2a2a]">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#4f5862]">
           <Share2 size={28} />
           <p className="text-[11.5px]">No entities detected — load a document with sensitive content</p>
         </div>
       ) : (
         <>
-          <svg ref={svgRef} className="w-full h-full" />
+          <div className="surface-card h-full overflow-hidden rounded-[28px]">
+            <svg ref={svgRef} className="h-full w-full" />
+          </div>
           {/* Legend overlay */}
-          <div className="absolute top-4 right-4 flex flex-col gap-1.5 glass-sm rounded-xl px-3 py-2.5 text-[10px]">
+          <div className="surface-soft absolute right-9 top-9 flex flex-col gap-1.5 rounded-xl px-3 py-2.5 text-[10px]">
             {(["phi", "ip", "mnpi"] as const).map((cat) => (
               <div key={cat} className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full" style={{ background: CATEGORY_COLOR[cat] }} />
                 <span style={{ color: CATEGORY_COLOR[cat] }}>{cat.toUpperCase()}</span>
               </div>
             ))}
-            <div className="mt-1 pt-1 border-t border-white/5 text-[#2a2a2a]">
-              drag · scroll to zoom
+            <div className="mt-1 border-t border-white/5 pt-1 text-[#6c7680]">
+              bounded cluster graph
             </div>
           </div>
           {/* Tooltip */}
           {tooltip && (
             <div
-              className="absolute pointer-events-none glass-sm rounded-lg px-3 py-2 text-[10.5px] z-50"
+              className="surface-soft absolute z-50 rounded-lg px-3 py-2 text-[10.5px] pointer-events-none"
               style={{ left: tooltip.x + 12, top: tooltip.y }}
             >
               <p style={{ color: CATEGORY_COLOR[tooltip.category] }} className="font-semibold">{tooltip.label}</p>
-              <p className="text-[#555]">{tooltip.category.toUpperCase()} · {tooltip.sub}</p>
+              <p className="text-[#6e7882]">{tooltip.category.toUpperCase()} · {tooltip.sub}</p>
             </div>
           )}
         </>
@@ -605,7 +689,7 @@ function RoutingView({ text, entities, isLoading }: { text: string; entities: En
     <div className="flex-1 overflow-y-auto px-8 py-6">
       {/* Header */}
       <div className="max-w-2xl mb-5">
-        <p className="text-[11px] text-[#3a3a3a] mb-3">Each clause shows which NGSP routing path handles it.</p>
+        <p className="text-[11px] text-[#5f6973] mb-3">Each clause shows which NGSP routing path handles it.</p>
         <div className="flex gap-3 text-[10px]">
           {Object.entries(ROUTE_STYLE).map(([key, val]) => (
             <span key={key} className={`px-2 py-0.5 rounded-md border ${val.cls}`}>{val.label}</span>
@@ -622,7 +706,7 @@ function RoutingView({ text, entities, isLoading }: { text: string; entities: En
 
           return (
             <div key={i} className="flex items-start gap-3 group">
-              <div className="flex-1 py-2 px-3 rounded-xl transition-all duration-150 doc-text text-[#c0c0c0] group-hover:bg-white/[0.02]">
+              <div className="doc-text flex-1 rounded-xl px-3 py-2 text-[#c0c7ce] transition-all duration-150 group-hover:bg-white/[0.02]">
                 {renderHighlightedSegment(seg.text, segEntities, seg.start)}
               </div>
               <span className={`shrink-0 mt-2.5 text-[9.5px] font-semibold px-2 py-0.5 rounded-md border ${style.cls} whitespace-nowrap`}>
@@ -641,11 +725,11 @@ function RoutingView({ text, entities, isLoading }: { text: string; entities: En
 function AuditTimelineView({ auditLog }: { auditLog: AuditLogEntry[] }) {
   if (auditLog.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[#2a2a2a] select-none">
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[#4f5862] select-none">
         <ClipboardList size={28} />
         <div className="text-center">
-          <p className="text-[12px] font-medium text-[#333]">No requests yet</p>
-          <p className="text-[10.5px] text-[#2a2a2a] mt-1">Send a message via the AI Agent to generate audit entries.</p>
+          <p className="text-[12px] font-medium text-[#b9c1c8]">No requests yet</p>
+          <p className="text-[10.5px] text-[#5f6973] mt-1">Send a message via the AI Agent to generate audit entries.</p>
         </div>
       </div>
     );
@@ -654,16 +738,16 @@ function AuditTimelineView({ auditLog }: { auditLog: AuditLogEntry[] }) {
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6">
       <div className="max-w-2xl">
-        <p className="text-[9.5px] text-[#333] uppercase tracking-widest font-semibold mb-4">Session Audit Log</p>
+        <p className="text-[9.5px] text-[#6d7680] uppercase tracking-widest font-semibold mb-4">Session Audit Log</p>
         <div className="space-y-2">
           {[...auditLog].reverse().map((entry, i) => {
             const style = ROUTE_STYLE[entry.route] ?? { label: entry.route, cls: "text-[#555] bg-white/5 border-white/10" };
             const ts = new Date(entry.timestamp);
             const timeStr = ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
             return (
-              <div key={entry.audit_id} className="flex items-start gap-3 p-3 rounded-xl glass transition-all duration-150 hover:bg-white/[0.03]">
+              <div key={entry.audit_id} className="surface-card flex items-start gap-3 rounded-xl p-3 transition-all duration-150 hover:bg-white/[0.04]">
                 {/* Index */}
-                <span className="text-[9px] text-[#2a2a2a] font-mono w-5 text-right shrink-0 mt-0.5">
+                <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-[9px] text-[#4f5862]">
                   {auditLog.length - i}
                 </span>
                 {/* Status icon */}
@@ -683,12 +767,12 @@ function AuditTimelineView({ auditLog }: { auditLog: AuditLogEntry[] }) {
                     {entry.blocked && (
                       <span className="text-[9px] text-error font-mono">BLOCKED</span>
                     )}
-                    <span className="text-[9px] text-[#2e2e2e] font-mono tabular ml-auto">{timeStr}</span>
+                    <span className="ml-auto font-mono tabular text-[9px] text-[#5d6670]">{timeStr}</span>
                   </div>
-                  <p className="text-[10.5px] text-[#4a4a4a] mt-1">
+                  <p className="mt-1 text-[10.5px] text-[#7a838b]">
                     {entry.entities_count} entit{entry.entities_count === 1 ? "y" : "ies"} proxied
-                    <span className="mx-1 text-[#222]">·</span>
-                    <span className="font-mono text-[#2a2a2a] text-[9px]">{entry.audit_id.slice(0, 12)}…</span>
+                    <span className="mx-1 text-[#384049]">·</span>
+                    <span className="font-mono text-[#56606a] text-[9px]">{entry.audit_id.slice(0, 12)}…</span>
                   </p>
                 </div>
               </div>
@@ -707,7 +791,7 @@ function Skeleton({ dim }: { dim?: boolean }) {
   return (
     <div className="space-y-3 animate-pulse">
       {bars.map((w, i) => (
-        <div key={i} className={`h-2.5 rounded-sm ${dim ? "bg-[#191919]" : "bg-[#1d1d1d]"}`} style={{ width: `${w * 100}%` }} />
+        <div key={i} className={`h-2.5 rounded-sm ${dim ? "bg-[#1e2328]" : "bg-[#242a31]"}`} style={{ width: `${w * 100}%` }} />
       ))}
     </div>
   );
@@ -715,7 +799,7 @@ function Skeleton({ dim }: { dim?: boolean }) {
 
 function Spinner() {
   return (
-    <div className="loading-dots text-[#333] flex gap-1.5">
+    <div className="loading-dots flex gap-1.5 text-[#68717b]">
       <span /><span /><span />
     </div>
   );
@@ -762,13 +846,13 @@ function Tab({ originalName, displayName, active, onClick, onClose, onRename }: 
       title={`${displayName} — double-click to rename`}
       className={`h-full min-w-[140px] max-w-[220px] flex items-center px-3 gap-2 cursor-pointer border-r select-none group relative transition-colors duration-100 ${
         active
-          ? "bg-surface text-[#c8c8c8]"
-          : "bg-transparent text-[#4a4a4a] hover:text-[#777]"
+          ? "bg-[#171b20] text-[#d0d7de]"
+          : "bg-transparent text-[#6d7680] hover:text-[#c0c7ce]"
       }`}
       style={{ borderRight: "1px solid rgba(255,255,255,0.04)" }}
     >
       {active && <div className="absolute top-0 left-0 right-0 h-px bg-[#0078d4]/70" />}
-      <Icon size={12} className={active ? "text-[#888] shrink-0" : "text-[#333] shrink-0"} />
+      <Icon size={12} className={active ? "text-[#94a0ab] shrink-0" : "text-[#4d5660] shrink-0"} />
       {editing ? (
         <input
           ref={inputRef}
@@ -896,7 +980,7 @@ function renderProxyText(
         className={`px-1 py-0.5 rounded-[3px] transition-all duration-100 border font-mono select-none cursor-pointer inline-block leading-none text-[10.5px] ${
           isActive
             ? "bg-vscode-selection/50 border-primary-container text-white"
-            : "bg-[#181818] border-[#252525] text-[#383838] hover:text-[#555] hover:border-[#2e2e2e]"
+            : "bg-[#1c232a] border-[#343d46] text-[#8f98a3] hover:text-[#d5dde5] hover:border-[#55606b]"
         }`}
         onMouseEnter={() => onHover(placeholder)}
         onMouseLeave={() => onHover(null)}

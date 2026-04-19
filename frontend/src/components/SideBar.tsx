@@ -87,9 +87,9 @@ function RecordsSidebar({
   const allFiles = Object.keys(DEMO_FILES);
 
   return (
-    <aside className="w-60 bg-surface-container-lowest flex flex-col shrink-0 border-r border-vscode-border">
-      <div className="h-[34px] px-4 flex items-center">
-        <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
+    <aside className="w-72 surface-left flex flex-col shrink-0 border-r border-white/[0.05]">
+      <div className="h-11 px-4 flex items-center">
+        <span className="text-[10.5px] font-semibold text-[#7c7c7c] uppercase tracking-widest">
           Patient Records
         </span>
       </div>
@@ -98,8 +98,8 @@ function RecordsSidebar({
         {/* File tree */}
         <div>
           <div className="h-6 flex items-center px-2 hover:bg-white/[0.03] cursor-pointer select-none">
-            <ChevronDown size={14} className="text-[#555] mr-1 shrink-0" />
-            <span className="text-[10px] font-semibold text-[#777] uppercase tracking-widest">
+            <ChevronDown size={14} className="text-[#5f6871] mr-1 shrink-0" />
+            <span className="text-[10px] font-semibold text-[#7a828b] uppercase tracking-widest">
               Sovereign OS
             </span>
           </div>
@@ -118,9 +118,9 @@ function RecordsSidebar({
             ))}
 
             <div className="h-6 flex items-center px-4 hover:bg-white/[0.03] cursor-pointer opacity-40">
-              <ChevronRight size={14} className="text-[#555] mr-1 shrink-0" />
-              <FolderOpen size={13} className="text-[#555] mr-2 shrink-0" />
-              <span className="text-[12px] text-[#666]">Audit Logs</span>
+              <ChevronRight size={14} className="text-[#5f6871] mr-1 shrink-0" />
+              <FolderOpen size={13} className="text-[#5f6871] mr-2 shrink-0" />
+              <span className="text-[12px] text-[#9099a2]">Audit Logs</span>
             </div>
           </div>
         </div>
@@ -128,8 +128,8 @@ function RecordsSidebar({
         {/* Clinical context */}
         <div className="mt-3 px-2">
           <div className="h-6 flex items-center px-1 hover:bg-white/[0.03] cursor-pointer mb-2 select-none">
-            <ChevronDown size={14} className="text-[#555] mr-1 shrink-0" />
-            <span className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">
+            <ChevronDown size={14} className="text-[#5f6871] mr-1 shrink-0" />
+            <span className="text-[10px] font-semibold text-[#5f6871] uppercase tracking-widest">
               Clinical Context
             </span>
           </div>
@@ -140,17 +140,17 @@ function RecordsSidebar({
               { label: "Enrollment Date", value: "2023-08-12", mono: true },
             ].map(({ label, value, mono }) => (
               <div key={label} className="flex flex-col gap-0.5">
-                <span className="text-[9.5px] text-[#4a4a4a] uppercase tracking-widest">{label}</span>
+                <span className="text-[9.5px] text-[#55606a] uppercase tracking-widest">{label}</span>
                 <span className={`text-[11.5px] text-[#a0a0a0] ${mono ? "font-mono" : ""}`}>{value}</span>
               </div>
             ))}
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9.5px] text-[#4a4a4a] uppercase tracking-widest">Active Compound</span>
+              <span className="text-[9.5px] text-[#55606a] uppercase tracking-widest">Active Compound</span>
               <div className="flex flex-wrap gap-1 mt-0.5">
                 <span className="px-1.5 py-0.5 bg-phi/10 text-phi text-[9px] rounded border border-phi/20">
                   BMS-986253
                 </span>
-                <span className="px-1.5 py-0.5 bg-[#222] text-[#555] text-[9px] rounded border border-vscode-border">
+                <span className="px-1.5 py-0.5 bg-[#20252b] text-[#5f6871] text-[9px] rounded border border-white/[0.05]">
                   +4 more
                 </span>
               </div>
@@ -159,13 +159,13 @@ function RecordsSidebar({
         </div>
       </div>
 
-      <div className="border-t border-vscode-border p-3">
-        <div className="text-[9.5px] text-[#3a3a3a] mb-1.5 uppercase font-semibold tracking-widest">
+      <div className="border-t border-white/[0.05] p-3">
+        <div className="text-[9.5px] text-[#4a535c] mb-1.5 uppercase font-semibold tracking-widest">
           System Health
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
-          <span className="text-[10.5px] text-[#666]">Privacy Layer: Active</span>
+          <span className="text-[10.5px] text-[#9099a2]">Privacy Layer: Active</span>
         </div>
       </div>
     </aside>
@@ -209,19 +209,19 @@ function FileItem({ originalName, displayName, active, open, onClick, onRename }
       onClick={!editing ? onClick : undefined}
       className={`h-7 flex items-center px-3 gap-2 cursor-pointer group transition-colors duration-100 ${
         active
-          ? "bg-[#264f78]/20 text-[#d4d4d4]"
-          : "text-[#888] hover:bg-white/[0.04] hover:text-[#bbb]"
+          ? "bg-[#1d2d3c] text-[#d5dbe0]"
+          : "text-[#adb5bc] hover:bg-white/[0.04] hover:text-[#bbb]"
       }`}
       title={`${displayName}${active ? " (active)" : " — click to open"} · double-click to rename`}
     >
       <Icon
         size={13}
-        className={`shrink-0 ${active ? "text-primary-fixed/70" : "text-[#555]"}`}
+        className={`shrink-0 ${active ? "text-primary-fixed/70" : "text-[#5f6871]"}`}
       />
       {editing ? (
         <input
           autoFocus
-          className="flex-1 bg-transparent text-[12px] text-[#d4d4d4] outline-none border-b border-primary-container min-w-0"
+          className="flex-1 bg-transparent text-[12px] text-[#d5dbe0] outline-none border-b border-primary-container min-w-0"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commitEdit}
@@ -233,7 +233,7 @@ function FileItem({ originalName, displayName, active, open, onClick, onRename }
         />
       ) : (
         <>
-          <span className="text-[12px] truncate flex-1">{displayName}</span>
+              <span className="text-[12.5px] truncate flex-1">{displayName}</span>
           {open && !active && (
             <div className="w-1 h-1 rounded-full bg-[#555] shrink-0" title="Open" />
           )}
@@ -242,7 +242,7 @@ function FileItem({ originalName, displayName, active, open, onClick, onRename }
           )}
           <button
             onClick={startEdit}
-            className="opacity-0 group-hover:opacity-100 text-[#555] hover:text-[#aaa] transition-all duration-100 p-0.5 rounded shrink-0"
+            className="opacity-0 group-hover:opacity-100 text-[#5f6871] hover:text-[#d0d7de] transition-all duration-100 p-0.5 rounded shrink-0"
             title="Rename"
           >
             <Pencil size={9} />
@@ -325,10 +325,10 @@ function PrivacyStatsSidebar({ auditStats, entityCounts }: PrivacyStatsSidebarPr
   const mnpi = entityCounts?.mnpi ?? 0;
 
   return (
-    <aside className="w-60 bg-surface-container-lowest flex flex-col shrink-0 border-r border-vscode-border">
-      <div className="h-[34px] px-4 flex items-center gap-2">
+    <aside className="w-72 surface-left flex flex-col shrink-0 border-r border-white/[0.05]">
+      <div className="h-11 px-4 flex items-center gap-2">
         <ShieldCheck size={12} className="text-tertiary" />
-        <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
+        <span className="text-[10px] font-semibold text-[#7a828b] uppercase tracking-widest">
           Privacy Monitor
         </span>
       </div>
@@ -340,22 +340,22 @@ function PrivacyStatsSidebar({ auditStats, entityCounts }: PrivacyStatsSidebarPr
           <div className="flex items-center gap-4 text-[10.5px]">
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-phi inline-block" />
-              <span className="text-[#777]">PHI <span className="text-[#aaa] font-semibold tabular">{phi}</span></span>
+              <span className="text-[#7a828b]">PHI <span className="text-[#d0d7de] font-semibold tabular">{phi}</span></span>
             </span>
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-ip inline-block" />
-              <span className="text-[#777]">IP <span className="text-[#aaa] font-semibold tabular">{ip}</span></span>
+              <span className="text-[#7a828b]">IP <span className="text-[#d0d7de] font-semibold tabular">{ip}</span></span>
             </span>
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-mnpi inline-block" />
-              <span className="text-[#777]">MNPI <span className="text-[#aaa] font-semibold tabular">{mnpi}</span></span>
+              <span className="text-[#7a828b]">MNPI <span className="text-[#d0d7de] font-semibold tabular">{mnpi}</span></span>
             </span>
           </div>
         </div>
 
         {/* Session counters */}
         <div>
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-3">
+          <p className="text-[9.5px] text-[#55606a] uppercase font-semibold tracking-widest mb-3">
             Session Activity
           </p>
           <div className="space-y-2">
@@ -367,10 +367,10 @@ function PrivacyStatsSidebar({ auditStats, entityCounts }: PrivacyStatsSidebarPr
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Icon size={10} className={color ?? "text-[#4a4a4a]"} />
-                  <span className="text-[11px] text-[#666]">{label}</span>
+                  <Icon size={10} className={color ?? "text-[#55606a]"} />
+                  <span className="text-[11px] text-[#9099a2]">{label}</span>
                 </div>
-                <span className={`text-[12px] font-mono font-bold tabular ${color ?? "text-[#888]"}`}>
+                <span className={`text-[12px] font-mono font-bold tabular ${color ?? "text-[#adb5bc]"}`}>
                   {value}
                 </span>
               </div>
@@ -380,7 +380,7 @@ function PrivacyStatsSidebar({ auditStats, entityCounts }: PrivacyStatsSidebarPr
 
         {/* Privacy guarantee */}
         <div className="p-3 glass rounded-lg">
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold mb-1.5 tracking-widest">
+          <p className="text-[9.5px] text-[#55606a] uppercase font-semibold mb-1.5 tracking-widest">
             Privacy Guarantee
           </p>
           <p className="text-[10.5px] text-[#5a5a5a] leading-relaxed">
@@ -391,16 +391,16 @@ function PrivacyStatsSidebar({ auditStats, entityCounts }: PrivacyStatsSidebarPr
 
         {/* DP budget */}
         <div>
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-2">
+          <p className="text-[9.5px] text-[#55606a] uppercase font-semibold tracking-widest mb-2">
             DP Budget (ε)
           </p>
           <div className="space-y-1.5">
             <div className="flex justify-between text-[11px]">
-              <span className="text-[#555]">Session cap</span>
-              <span className="font-mono text-[#888] tabular">ε = 3.0</span>
+              <span className="text-[#5f6871]">Session cap</span>
+              <span className="font-mono text-[#adb5bc] tabular">ε = 3.0</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="text-[#555]">Spent</span>
+              <span className="text-[#5f6871]">Spent</span>
               <span className="font-mono text-tertiary tabular">ε ≈ 0.0</span>
             </div>
             <div className="h-1 bg-[#1f1f1f] rounded-full mt-1 overflow-hidden">
@@ -437,10 +437,10 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
   };
 
   return (
-    <aside className="w-60 bg-surface-container-lowest flex flex-col shrink-0 border-r border-vscode-border">
-      <div className="h-[34px] px-4 flex items-center gap-2">
-        <Key size={12} className="text-[#555]" />
-        <span className="text-[10px] font-semibold text-[#6a6a6a] uppercase tracking-widest">
+    <aside className="w-72 surface-left flex flex-col shrink-0 border-r border-white/[0.05]">
+      <div className="h-11 px-4 flex items-center gap-2">
+        <Key size={12} className="text-[#5f6871]" />
+        <span className="text-[10px] font-semibold text-[#7a828b] uppercase tracking-widest">
           Key Vault
         </span>
       </div>
@@ -448,7 +448,7 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* API Key input */}
         <div>
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-2.5">
+          <p className="text-[9.5px] text-[#55606a] uppercase font-semibold tracking-widest mb-2.5">
             API Connection
           </p>
           <div className="space-y-2">
@@ -458,12 +458,12 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
                 value={apiKey}
                 onChange={(e) => { setApiKey(e.target.value); setConnected(false); }}
                 placeholder="Paste your API key…"
-                className="w-full bg-[#1a1a1a] border border-vscode-border rounded-lg px-3 py-2 pr-8 text-[11.5px] text-[#d4d4d4] placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors duration-150"
+                className="w-full bg-[#171b20] border border-white/[0.05] rounded-lg px-3 py-2 pr-8 text-[11.5px] text-[#d5dbe0] placeholder:text-[#454d56] focus:outline-none focus:border-[#333] transition-colors duration-150"
               />
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#adb5bc] transition-colors"
               >
                 {showKey ? <EyeOff size={12} /> : <Eye size={12} />}
               </button>
@@ -474,7 +474,7 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
               className={`w-full py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-150 ${
                 connected
                   ? "bg-tertiary/10 border border-tertiary/25 text-tertiary"
-                  : "glass border-vscode-border text-[#888] hover:text-[#c8c8c8] hover:border-[#333] disabled:opacity-30 disabled:cursor-not-allowed"
+                  : "glass border-white/[0.05] text-[#adb5bc] hover:text-[#c8c8c8] hover:border-[#333] disabled:opacity-30 disabled:cursor-not-allowed"
               }`}
             >
               {connected ? (
@@ -486,14 +486,14 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
               )}
             </button>
           </div>
-          <p className="text-[9.5px] text-[#333] mt-1.5 leading-relaxed">
+          <p className="text-[9.5px] text-[#454d56] mt-1.5 leading-relaxed">
             Keys are stored in memory only and never persisted.
           </p>
         </div>
 
         {/* Model selector */}
         <div>
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold tracking-widest mb-2">
+          <p className="text-[9.5px] text-[#55606a] uppercase font-semibold tracking-widest mb-2">
             AI Model
           </p>
           <div className="space-y-1.5">
@@ -506,14 +506,14 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all duration-150 ${
                     active
                       ? "border-tertiary/25 bg-tertiary/5 ring-1 ring-tertiary/10"
-                      : "border-vscode-border bg-transparent hover:border-[#333] hover:bg-white/[0.02]"
+                      : "border-white/[0.05] bg-transparent hover:border-[#333] hover:bg-white/[0.02]"
                   }`}
                 >
                   <div className="flex flex-col gap-0.5">
-                    <span className={`text-[11.5px] font-medium ${active ? "text-[#c8c8c8]" : "text-[#666]"}`}>
+                    <span className={`text-[11.5px] font-medium ${active ? "text-[#c8c8c8]" : "text-[#9099a2]"}`}>
                       {MODEL_LABELS[id]}
                     </span>
-                    <span className={`text-[9px] ${active ? "text-tertiary/70" : "text-[#3a3a3a]"}`}>
+                    <span className={`text-[9px] ${active ? "text-tertiary/70" : "text-[#4a535c]"}`}>
                       {MODEL_NOTES[id]}
                     </span>
                   </div>
@@ -526,7 +526,7 @@ function KeyVaultSidebar({ selectedModel, onModelChange }: KeyVaultSidebarProps)
 
         {/* Privacy note */}
         <div className="p-3 glass rounded-lg">
-          <p className="text-[9.5px] text-[#4a4a4a] uppercase font-semibold mb-1.5 tracking-widest">
+          <p className="text-[9.5px] text-[#55606a] uppercase font-semibold mb-1.5 tracking-widest">
             Privacy Mode
           </p>
           <p className="text-[10.5px] text-[#5a5a5a] leading-relaxed">

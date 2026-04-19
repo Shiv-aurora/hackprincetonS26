@@ -5,11 +5,11 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --color-surface:                   #141414;
-  --color-surface-container-lowest:  #191919;
-  --color-surface-container-low:     #1d1d1d;
-  --color-surface-container-high:    #222222;
-  --color-surface-container-highest: #2a2a2a;
+  --color-surface:                   #0d1013;
+  --color-surface-container-lowest:  #101419;
+  --color-surface-container-low:     #14191e;
+  --color-surface-container-high:    #181e24;
+  --color-surface-container-highest: #1f262e;
 
   --color-primary-container: #0078d4;
   --color-primary-fixed:     #4fc3f7;
@@ -21,28 +21,21 @@
   --color-tertiary: #6a9955;
   --color-error:    #f48771;
 
-  --color-vscode-border:     #252525;
-  --color-vscode-status:     #0078d4;
-  --color-vscode-selection:  #264f78;
-
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 0px;
+  --color-vscode-border:    #2a333c;
+  --color-vscode-selection: #264f78;
 }
 
 @layer base {
   body {
-    @apply bg-surface text-[#d4d4d4] font-sans overflow-hidden;
+    @apply bg-surface text-[#d4d9df] font-sans overflow-hidden;
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "ss01" 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Subtle ambient gradient — gives the glass blur something to catch */
     background-image:
-      radial-gradient(ellipse 900px 600px at 15% 20%, rgba(0, 120, 212, 0.055) 0%, transparent 70%),
-      radial-gradient(ellipse 700px 500px at 85% 75%, rgba(106, 153, 85, 0.04) 0%, transparent 65%),
-      radial-gradient(ellipse 500px 400px at 60% 10%, rgba(220, 220, 170, 0.025) 0%, transparent 60%);
+      radial-gradient(ellipse 1200px 760px at 12% 14%, rgba(23, 71, 110, 0.22) 0%, transparent 56%),
+      radial-gradient(ellipse 920px 680px at 86% 82%, rgba(88, 115, 92, 0.12) 0%, transparent 58%),
+      linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 16%);
   }
 
   ::selection {
@@ -51,118 +44,171 @@
   }
 }
 
-/* ── Glass morphism ── pronounced, visible blur + light catch ── */
+.app-shell {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 16%),
+    linear-gradient(180deg, #0d1013 0%, #0c0f12 100%);
+}
 
-.glass {
-  background: rgba(255, 255, 255, 0.055);
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+.app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.035), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 11%);
+  opacity: 0.85;
+}
+
+.surface-header {
+  background: rgba(11, 14, 17, 0.92);
+  backdrop-filter: blur(26px) saturate(150%);
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.03);
+}
+
+.surface-left {
+  background: linear-gradient(180deg, rgba(27, 32, 38, 0.96), rgba(23, 28, 33, 0.96));
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
+}
+
+.surface-main {
+  background: linear-gradient(180deg, rgba(15, 18, 22, 0.98), rgba(14, 17, 21, 0.98));
+}
+
+.surface-agent {
+  background: linear-gradient(180deg, rgba(15, 18, 22, 0.98), rgba(12, 15, 19, 0.98));
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.surface-toolbar {
+  background: rgba(15, 18, 22, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.surface-card {
+  background: linear-gradient(180deg, rgba(23, 28, 34, 0.9), rgba(19, 23, 28, 0.9));
+  border: 1px solid rgba(255,255,255,0.055);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    0 16px 40px rgba(0,0,0,0.2);
+}
+
+.surface-soft {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.surface-alert {
+  background: rgba(70, 18, 18, 0.7);
+  border: 1px solid rgba(190, 17, 0, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(244, 135, 113, 0.12),
+    0 12px 44px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.surface-dp {
+  background: rgba(48, 41, 18, 0.78);
+  border: 1px solid rgba(220, 220, 170, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+.surface-accent {
+  background: rgba(0, 100, 200, 0.14);
+  border: 1px solid rgba(0, 120, 212, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(79, 195, 247, 0.12),
+    0 10px 30px rgba(0, 120, 212, 0.16);
+}
+
+.glass,
+.glass-panel,
+.glass-sidebar {
+  background: linear-gradient(180deg, rgba(23, 28, 34, 0.9), rgba(19, 23, 28, 0.9));
+  border: 1px solid rgba(255,255,255,0.055);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    0 16px 40px rgba(0,0,0,0.2);
 }
 
 .glass-sm {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    0 4px 20px rgba(0, 0, 0, 0.35);
-}
-
-.glass-panel {
-  background: rgba(18, 18, 18, 0.78);
-  backdrop-filter: blur(52px) saturate(220%);
-  -webkit-backdrop-filter: blur(52px) saturate(220%);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  box-shadow:
-    0 24px 72px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
-}
-
-.glass-sidebar {
-  background: rgba(22, 22, 22, 0.72);
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .glass-warning {
-  background: rgba(70, 18, 18, 0.65);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(70, 18, 18, 0.7);
   border: 1px solid rgba(190, 17, 0, 0.28);
-  box-shadow: inset 0 1px 0 rgba(244, 135, 113, 0.1);
 }
 
 .glass-dp {
-  background: rgba(38, 28, 0, 0.72);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(48, 41, 18, 0.78);
   border: 1px solid rgba(220, 220, 170, 0.2);
-  box-shadow: inset 0 1px 0 rgba(220, 220, 170, 0.08);
 }
 
 .glass-blue {
-  background: rgba(0, 100, 200, 0.12);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(0, 100, 200, 0.14);
   border: 1px solid rgba(0, 120, 212, 0.25);
-  box-shadow: inset 0 1px 0 rgba(79, 195, 247, 0.12);
 }
 
-/* ── Resize handle ─────────────────────────────────────────── */
-
 .resize-handle {
-  width: 4px;
+  width: 6px;
   flex-shrink: 0;
   cursor: col-resize;
   user-select: none;
-  background: transparent;
-  transition: background 0.2s ease;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.03), transparent);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
   position: relative;
 }
-.resize-handle:hover  { background: rgba(0, 120, 212, 0.55); }
-.resize-handle:active { background: rgba(0, 120, 212, 0.85); }
 
-/* ── Clinical document typography ───────────────────────────── */
+.resize-handle:hover {
+  background: rgba(0, 120, 212, 0.4);
+  box-shadow: 0 0 22px rgba(0, 120, 212, 0.22);
+}
+
+.resize-handle:active {
+  background: rgba(0, 120, 212, 0.7);
+  box-shadow: 0 0 26px rgba(0, 120, 212, 0.34);
+}
 
 .doc-text {
   font-family: "Inter", ui-sans-serif, sans-serif;
-  font-size: 14px;
-  line-height: 1.85;
+  font-size: 15.5px;
+  line-height: 1.9;
   font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
-  color: #d0d0d0;
-  letter-spacing: 0.012em;
+  color: #d0d5da;
+  letter-spacing: 0.014em;
 }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
 }
-
-/* ── Focus ring ────────────────────────────────────────────── */
 
 *:focus-visible {
   outline: 2px solid rgba(0, 120, 212, 0.65);
   outline-offset: 1px;
-  border-radius: 2px;
+  border-radius: 6px;
 }
-
-/* ── Loading dots ──────────────────────────────────────────── */
 
 .loading-dots span {
   display: inline-block;
-  width: 5px; height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: currentColor;
   animation: dot-pulse 1.4s ease-in-out infinite;
@@ -175,17 +221,23 @@
   40% { transform: scale(1); opacity: 1; }
 }
 
-/* ── Misc ─────────────────────────────────────────────────── */
-
-.razor-border { border: 1px solid rgba(255, 255, 255, 0.045); }
-.tabular { font-variant-numeric: tabular-nums; }
-
-/* Active tab indicator */
-.tab-active::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #0078d4, #4fc3f7 80%);
-  border-radius: 0 0 2px 2px;
+.animated-border {
+  position: relative;
 }
+
+.animated-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, rgba(79,193,255,0.25), rgba(255,255,255,0.04), rgba(220,220,170,0.22));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.razor-border { border: 1px solid rgba(255, 255, 255, 0.05); }
+.tabular { font-variant-numeric: tabular-nums; }
+.chat-mode-shell { position: relative; }

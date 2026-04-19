@@ -15,8 +15,8 @@ export default function ActivityBar({ activeTab, onTabChange }: ActivityBarProps
   ];
 
   return (
-    <nav className="w-12 bg-surface-container-low flex flex-col items-center py-2 shrink-0 z-40 border-r border-vscode-border">
-      <div className="flex flex-col w-full gap-2">
+    <nav className="surface-left flex w-13 shrink-0 flex-col items-center border-r border-white/[0.05] py-2 z-40">
+      <div className="flex w-full flex-col gap-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -26,37 +26,37 @@ export default function ActivityBar({ activeTab, onTabChange }: ActivityBarProps
               key={item.id}
               onClick={() => onTabChange(item.id)}
               title={item.label}
-              className={`flex items-center justify-center w-full py-3 transition-opacity duration-150 relative ${
+              className={`relative flex w-full items-center justify-center py-3 transition-all duration-150 ${
                 isActive
                   ? "text-white opacity-100"
                   : isProduction
-                  ? "text-[#858585] opacity-40 cursor-default"
-                  : "text-[#858585] opacity-70 hover:opacity-100"
+                  ? "cursor-default text-[#6b7178] opacity-35"
+                  : "text-[#6b7178] opacity-75 hover:opacity-100 hover:text-[#cbd2d8]"
               }`}
               disabled={isProduction}
             >
-              <Icon size={22} strokeWidth={1.5} />
-              {isActive && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white opacity-30" />}
+              <Icon size={21} strokeWidth={1.5} />
+              {isActive && <div className="absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-full bg-[#85c8ff] opacity-80" />}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-auto w-full flex flex-col items-center gap-2 pb-2">
+      <div className="mt-auto flex w-full flex-col items-center gap-2 pb-2">
         <button
           title="User profile"
-          className="text-[#858585] opacity-70 hover:opacity-100 transition-opacity p-2"
+          className="p-2 text-[#6b7178] opacity-75 transition-opacity hover:opacity-100 hover:text-[#cbd2d8]"
         >
-          <UserRound size={22} strokeWidth={1.5} />
+          <UserRound size={21} strokeWidth={1.5} />
         </button>
         <button
           title="Settings"
           onClick={() => onTabChange("PHARMACY")}
-          className={`opacity-70 hover:opacity-100 transition-opacity p-2 ${
-            activeTab === "PHARMACY" ? "text-white opacity-100" : "text-[#858585]"
+          className={`p-2 transition-opacity hover:opacity-100 ${
+            activeTab === "PHARMACY" ? "text-white opacity-100" : "text-[#6b7178] opacity-75 hover:text-[#cbd2d8]"
           }`}
         >
-          <Settings size={22} strokeWidth={1.5} />
+          <Settings size={21} strokeWidth={1.5} />
         </button>
       </div>
     </nav>
