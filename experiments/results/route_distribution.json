@@ -1,0 +1,513 @@
+{
+  "n_per_type": 20,
+  "seed": 42,
+  "by_doc_type": {
+    "sae": {
+      "abstract_extractable": 0,
+      "dp_tolerant": 20,
+      "local_only": 0
+    },
+    "protocol": {
+      "abstract_extractable": 13,
+      "dp_tolerant": 7,
+      "local_only": 0
+    },
+    "monitoring": {
+      "abstract_extractable": 20,
+      "dp_tolerant": 0,
+      "local_only": 0
+    },
+    "writing": {
+      "abstract_extractable": 7,
+      "dp_tolerant": 10,
+      "local_only": 3
+    }
+  },
+  "overall": {
+    "abstract_extractable": 40,
+    "dp_tolerant": 37,
+    "local_only": 3
+  },
+  "per_doc": [
+    {
+      "doc_id": "SAE-0042-0000-bdd640fb",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0001-ddd1dfb2",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0002-7e570ddf",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0003-3d4cbf37",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0004-ceb81f9d",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0005-b7e99aca",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0006-43e42caf",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0007-f1eedba3",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0008-4774bc58",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0009-ad64b56c",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0010-e2add909",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0011-54b4a482",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0012-610e6a64",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0013-0a8381be",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0014-7d137018",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0015-a34b6cf6",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0016-68949b8d",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0017-d6016237",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0018-49bc473f",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "SAE-0042-0019-749176f4",
+      "doc_type": "sae",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "PROT-0043-0000-c33f4584",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The user's request is for a general edit of the text, without referencing any specific sensitive entities. The sensitive spans detected in the input are not critical to the overall meaning of the text."
+    },
+    {
+      "doc_id": "PROT-0043-0001-5f53f26c",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely without referencing any specific sensitive entity. The sensitive spans detected in the input are the names of the participants, which are not critical to the task."
+    },
+    {
+      "doc_id": "PROT-0043-0002-832ea288",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely without referencing any specific sensitive entity. The sensitive spans detected in the input are: name, which is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "PROT-0043-0003-944ae60b",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0004-b37ee754",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely without referencing any specific sensitive entity. The sensitive spans detected in the input are the names of the participants, which are not critical to the task."
+    },
+    {
+      "doc_id": "PROT-0043-0005-5e38a9ff",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task of classifying the user's request into one of the three routing paths is abstract and does not require referencing any specific sensitive entity. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "PROT-0043-0006-b715e9a1",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is abstract and does not require conveying sensitive content. The user's request is for a statistical analysis plan, which is a general concept rather than a specific entity."
+    },
+    {
+      "doc_id": "PROT-0043-0007-df9e9526",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is about rewriting the sentence more concisely, without referencing any specific sensitive entity."
+    },
+    {
+      "doc_id": "PROT-0043-0008-fa02f585",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0009-b7bd86bf",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task of classifying the user's request into one of the three routing paths is abstract and does not require referencing any specific sensitive entity. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "PROT-0043-0010-0d457c22",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task of classifying the user's request into one of the three routing paths is abstract and does not require referencing any specific sensitive entity. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "PROT-0043-0011-c6cefb92",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is purely about editing the sentence for conciseness, without referencing any specific sensitive entity. The sensitive spans detected in the input, such as 'indication' and 'name', are not critical for the task's success."
+    },
+    {
+      "doc_id": "PROT-0043-0012-061410f3",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0013-1dcc06ad",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0014-d65371ec",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0015-71adad60",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0016-b313ede6",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is purely about editing the sentence for conciseness, without referencing any specific sensitive entity."
+    },
+    {
+      "doc_id": "PROT-0043-0017-bae3921e",
+      "doc_type": "protocol",
+      "path": "dp_tolerant",
+      "rationale": "Routing fallback: parse error."
+    },
+    {
+      "doc_id": "PROT-0043-0018-633d1532",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical. A slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "PROT-0043-0019-feade868",
+      "doc_type": "protocol",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely without referencing any specific sensitive entity. The sensitive spans detected in the input are: name: 7. The user request is a statistical analysis plan (synthetic excerpt), which is a general topic and does not require conveying any specific sensitive content."
+    },
+    {
+      "doc_id": "MON-0044-0000-b39cfd4b",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content (device_id: 1, name: 11) is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0001-96afb864",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content (device_id: 1, name: 11) is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0002-268cdc62",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0003-c2be277b",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0004-9985a520",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0005-4751fb15",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0006-67dd6c28",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0007-a36510bc",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0008-c95c97af",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0009-60bf7ed5",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0010-4d3d65a0",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0011-f1901f86",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0012-7cbdbe7e",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content (device_id and name) is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0013-a5a01c5e",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0014-c20f47af",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0015-e820fd6e",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "MON-0044-0016-4d037d22",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0017-6ae6f356",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0018-03fb55aa",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "MON-0044-0019-b0cac939",
+      "doc_type": "monitoring",
+      "path": "abstract_extractable",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0000-41f60be0",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0001-09274947",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0002-ec46fde3",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0003-b2fda54c",
+      "doc_type": "writing",
+      "path": "local_only",
+      "rationale": "The task and the sensitive content are inseparable. The user needs an answer that specifically identifies or references sensitive entities. No useful proxy can be formed."
+    },
+    {
+      "doc_id": "CSR-0045-0004-c9e201c1",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical. The sensitive spans detected in the input include 'dose', 'efficacy_value', 'indication', 'interim_result', 'site_id', 'timing', 'ae_grade', 'compound_code', and 'amendment_rationale'. These spans are not critical for the task's success, and a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0005-8deb93bd",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0006-2ed08d07",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0007-54507252",
+      "doc_type": "writing",
+      "path": "local_only",
+      "rationale": "The task and the sensitive content are inseparable. The user needs an answer that specifically identifies or references sensitive entities. No useful proxy can be formed."
+    },
+    {
+      "doc_id": "CSR-0045-0008-260ffb1d",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical. A slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0009-64683e05",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "CSR-0045-0010-07b26167",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is about abstracting the content without referencing any specific sensitive entity. The sensitive spans detected in the input are 'geographic_subdivision' and 'name', which are not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "CSR-0045-0011-644b2f63",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0012-e533da03",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is to rewrite the sentence more concisely, and the sensitive content is not critical for the task. Therefore, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "CSR-0045-0013-b1646563",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0014-62a08fb0",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is to classify the user's request into one of the three routing paths. The sensitive spans detected in the input are 'geographic_subdivision' with a name of 'GEOGRAPHIC_SUBDIVISION_1'. Since the sensitive content is not critical for the task, the request can be classified as abstract_extractable."
+    },
+    {
+      "doc_id": "CSR-0045-0015-6801d220",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is purely about editing the sentence for conciseness, without referencing any specific sensitive entity."
+    },
+    {
+      "doc_id": "CSR-0045-0016-9ba13d51",
+      "doc_type": "writing",
+      "path": "dp_tolerant",
+      "rationale": "The task requires conveying some of the sensitive content to be useful (e.g. summarization, translation, long-form Q&A about clinical data), but the exact sensitive values are not critical \u2014 a slightly noised version would still be acceptable."
+    },
+    {
+      "doc_id": "CSR-0045-0017-ce853460",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is about abstracting the content without referencing any specific sensitive entity, such as the geographic subdivision."
+    },
+    {
+      "doc_id": "CSR-0045-0018-56c39afa",
+      "doc_type": "writing",
+      "path": "local_only",
+      "rationale": "The task and the sensitive content are inseparable. The user needs an answer that specifically identifies or references sensitive entities. No useful proxy can be formed."
+    },
+    {
+      "doc_id": "CSR-0045-0019-cf4d3b6c",
+      "doc_type": "writing",
+      "path": "abstract_extractable",
+      "rationale": "The task is abstract and does not require conveying sensitive content. The sensitive spans detected in the input, such as device_id and geographic_subdivision, are not critical to the task's success."
+    }
+  ]
+}

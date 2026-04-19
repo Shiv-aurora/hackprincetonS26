@@ -1,0 +1,6 @@
+{
+  "name": "Sovereign OS - Clinical Workspace",
+  "description": "A high-precision clinical data workspace with automated PII sanitization, audit logging, and AI-assisted extraction for medical research.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

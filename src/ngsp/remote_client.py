@@ -23,6 +23,12 @@ class CanaryLeakError(RuntimeError):
 DEFAULT_AUDIT_LOG_PATH = Path("experiments/results/audit.jsonl")
 DEFAULT_MODEL = "claude-opus-4-7"
 
+# Sentinel key value that enables offline/mock mode for experiments that must not hit
+# the Anthropic API. When the key equals this value, RemoteClient.complete() returns a
+# fixed canned response and never instantiates an Anthropic SDK client.
+MOCK_API_KEY = "sk-ant-mock"
+MOCK_RESPONSE = "[MOCK RESPONSE: remote call skipped in offline mode]"
+
 
 @dataclass(frozen=True)
 class _AuditRecord:
@@ -68,14 +74,23 @@ class RemoteClient:
                 "ANTHROPIC_API_KEY is missing or unset in the environment. "
                 "Copy .env.example to .env and fill in a real key."
             )
+        self._mock_mode = resolved_key == MOCK_API_KEY
         self.model = model or os.environ.get("ANTHROPIC_MODEL") or DEFAULT_MODEL
         self.audit_log_path = Path(audit_log_path) if audit_log_path else DEFAULT_AUDIT_LOG_PATH
         if _client is not None:
             self._client = _client
+        elif self._mock_mode:
+            # Offline mode: no Anthropic SDK instance is created. complete() short-circuits.
+            self._client = None
         else:
             from anthropic import Anthropic  # local import: keeps module import cheap
 
             self._client = Anthropic(api_key=resolved_key, max_retries=max_retries)
+
+    @property
+    # True when RemoteClient is running in offline/mock mode (no real API calls).
+    def mock_mode(self) -> bool:
+        return self._mock_mode
 
     # Call the Anthropic Messages API after canary scanning and write a hashed audit line.
     def complete(self, prompt: str, system: str | None, max_tokens: int) -> str:
@@ -105,6 +120,26 @@ class RemoteClient:
                 raise CanaryLeakError(
                     f"Canary token detected in {field_name}; refusing to send to remote API."
                 )
+
+        if self._mock_mode:
+            response_text = MOCK_RESPONSE
+            self._write_audit(
+                _AuditRecord(
+                    request_id=request_id,
+                    timestamp=_now_iso(),
+                    model=self.model,
+                    prompt_length=len(prompt),
+                    prompt_hash=prompt_hash,
+                    system_length=len(system) if system else 0,
+                    system_hash=system_hash,
+                    max_tokens=max_tokens,
+                    response_length=len(response_text),
+                    response_hash=_sha256(response_text),
+                    status="mock_ok",
+                    error_type=None,
+                )
+            )
+            return response_text
 
         kwargs: dict[str, Any] = {
             "model": self.model,

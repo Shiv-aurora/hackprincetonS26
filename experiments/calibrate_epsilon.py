@@ -58,56 +58,88 @@ def _load_corpus(n: int, seed: int) -> list[Any]:
     return docs[:n]
 
 
-# Evaluate proxy utility against the original for one document by asking Claude to judge.
+# Evaluate proxy utility locally without any remote API call.
+# Heuristic: ratio of (non-placeholder) proxy word tokens that also occur in the stripped
+# original over the total word count of the stripped original. This stands in for the
+# "did the proxy preserve the task-relevant content?" judgement that the Anthropic API
+# previously answered. Deterministic, offline, cheap — used across all ε sweeps.
 def _evaluate_utility(
     original_text: str,
     proxy_text: str,
-    remote_client: Any,
+    remote_client: Any,  # kept for signature compatibility; unused in offline mode
 ) -> float:
-    system = (
-        "You are a clinical-document quality judge. "
-        "Score how well the PROXY preserves the task-relevant content of the ORIGINAL "
-        "on a scale from 0.0 (completely useless) to 1.0 (identical meaning). "
-        "Respond with ONLY a decimal number, nothing else."
-    )
-    prompt = f"ORIGINAL:\n{original_text[:800]}\n\nPROXY:\n{proxy_text[:800]}"
-    try:
-        resp = remote_client.complete(prompt, system=system, max_tokens=8)
-        score = float(resp.strip().split()[0])
-        return max(0.0, min(1.0, score))
-    except Exception:
-        return 0.5  # neutral fallback if scoring fails
+    import re
+
+    def _tokens(s: str) -> list[str]:
+        # Lowercase word tokens, dropping placeholder markers like <NAME_1>.
+        no_placeholders = re.sub(r"<[A-Z_]+_\d+>", " ", s)
+        return re.findall(r"[a-z0-9]+", no_placeholders.lower())
+
+    orig_tokens = _tokens(original_text)
+    proxy_tokens = _tokens(proxy_text)
+    if not orig_tokens:
+        return 0.0
+    orig_set = set(orig_tokens)
+    overlap = sum(1 for t in proxy_tokens if t in orig_set)
+    score = overlap / len(orig_tokens)
+    return max(0.0, min(1.0, score))
 
 
-# Run one calibration pass at the given ε, returning per-document utility scores.
+# Pre-compute and cache the per-doc objects that do not depend on ε: stripped text,
+# safe-harbor spans, extracted quasi-identifier spans, and the clipped clean hidden
+# vector. These steps are the expensive ones (NER generate + hidden-state generate),
+# so running them once per doc instead of once per (doc, ε) pair yields ~5× wall-clock
+# savings on a 5-point ε sweep with no change to the DP math.
+def _precompute_doc_cache(docs: list[Any], local_model: Any) -> list[dict[str, Any]]:
+    import time
+
+    from ngsp.dp_mechanism import clip_to_norm
+    from ngsp.entity_extractor import extract_quasi_identifiers
+    from ngsp.safe_harbor import strip_safe_harbor
+
+    cache: list[dict[str, Any]] = []
+    for i, doc in enumerate(docs):
+        t0 = time.time()
+        strip = strip_safe_harbor(doc.text, local_model)
+        qi_spans = extract_quasi_identifiers(strip.stripped_text, local_model)
+        all_spans = strip.spans + qi_spans
+        _, hidden = local_model.generate_with_hidden_states(
+            strip.stripped_text, layer=-1, max_tokens=64
+        )
+        clipped = clip_to_norm(hidden, 1.0)
+        cache.append({
+            "doc": doc,
+            "stripped": strip.stripped_text,
+            "spans": all_spans,
+            "clipped_hidden": clipped,
+        })
+        print(f"  [calibrate] cached doc {i + 1}/{len(docs)} in {time.time() - t0:.1f}s",
+              flush=True)
+    return cache
+
+
+# Run one calibration pass at the given ε against a prebuilt per-doc cache.
+# Only the noise + decode_proxy step runs here — the strip + hidden-state work was
+# already done by `_precompute_doc_cache`.
 def _run_epsilon(
     epsilon: float,
-    docs: list[Any],
+    doc_cache: list[dict[str, Any]],
     delta: float,
     local_model: Any,
     remote_client: Any,
 ) -> dict[str, Any]:
-    from ngsp.dp_mechanism import add_gaussian_noise, clip_to_norm, compute_sigma
-    from ngsp.safe_harbor import strip_safe_harbor
+    from ngsp.dp_mechanism import add_gaussian_noise, compute_sigma
+    from ngsp.proxy_decoder import decode_proxy
 
     sigma = compute_sigma(epsilon, delta)
     scores: list[float] = []
     failures: int = 0
 
-    for doc in docs:
+    for entry in doc_cache:
         try:
-            strip = strip_safe_harbor(doc.text, local_model)
-            _, hidden = local_model.generate_with_hidden_states(
-                strip.stripped_text, layer=-1, max_tokens=64
-            )
-            clipped = clip_to_norm(hidden, C=1.0)
-            noisy = add_gaussian_noise(clipped, sigma)
-
-            from ngsp.proxy_decoder import decode_proxy
-            from ngsp.safe_harbor import StripResult
-
-            proxy = decode_proxy(strip.stripped_text, noisy, strip.spans, local_model)
-            score = _evaluate_utility(doc.text, proxy, remote_client)
+            noisy = add_gaussian_noise(entry["clipped_hidden"], sigma)
+            proxy = decode_proxy(entry["stripped"], noisy, entry["spans"], local_model)
+            score = _evaluate_utility(entry["doc"].text, proxy, remote_client)
             scores.append(score)
         except Exception as exc:
             print(f"  [calibrate] warning: {exc}", file=sys.stderr)
@@ -118,7 +150,7 @@ def _run_epsilon(
         "epsilon": epsilon,
         "delta": delta,
         "sigma": sigma,
-        "n_docs": len(docs),
+        "n_docs": len(doc_cache),
         "n_scored": len(scores),
         "n_failures": failures,
         "mean_utility": mean_utility,
@@ -166,16 +198,29 @@ def main() -> int:
     local_model = LocalModel()
     remote_client = RemoteClient()
 
+    # MPS warmup: first generation compiles shaders; running a throwaway call here
+    # keeps the per-doc timings stable and visible in the log.
+    import time
+    t0 = time.time()
+    _ = local_model.generate("warmup", max_tokens=8)
+    print(f"[calibrate] MPS warmup done in {time.time() - t0:.1f}s "
+          f"(device={local_model.device}, dtype={local_model.dtype_name})")
+
     docs = _load_corpus(args.n_docs, args.seed)
     print(f"[calibrate] loaded {len(docs)} documents from synthetic corpus")
 
+    print(f"[calibrate] precomputing per-doc cache (strip + NER + hidden-state) …")
+    doc_cache = _precompute_doc_cache(docs, local_model)
+    print(f"[calibrate] cache ready: {len(doc_cache)} docs")
+
     all_results = []
     for eps in epsilons:
-        print(f"[calibrate] running ε={eps} …")
-        result = _run_epsilon(eps, docs, args.delta, local_model, remote_client)
+        print(f"[calibrate] running ε={eps} …", flush=True)
+        result = _run_epsilon(eps, doc_cache, args.delta, local_model, remote_client)
         print(
             f"  ε={eps}: mean_utility={result['mean_utility']:.3f}, "
-            f"scored={result['n_scored']}/{result['n_docs']}"
+            f"scored={result['n_scored']}/{result['n_docs']}",
+            flush=True,
         )
         all_results.append(result)
 
