@@ -130,6 +130,25 @@ def _make_placeholder(category: SensitiveCategory, counters: dict[str, int]) -> 
     return f"<{key}_{counters[key]}>"
 
 
+# Replace spans in `text` with typed placeholders, extending entity_map in place; returns updated text.
+def apply_span_stripping(
+    text: str,
+    spans: "list[Any]",
+    entity_map: "dict[str, str]",
+    counters: "dict[str, int] | None" = None,
+) -> str:
+    if not spans:
+        return text
+    if counters is None:
+        counters = {}
+    result_chars = list(text)
+    for sp in sorted(spans, key=lambda s: s.start, reverse=True):
+        placeholder = _make_placeholder(sp.category, counters)
+        entity_map[placeholder] = sp.value
+        result_chars[sp.start : sp.end] = list(placeholder)
+    return "".join(result_chars)
+
+
 # Strip Safe Harbor identifiers from `text`, replacing them with abstract placeholders.
 # Pass a LocalModel instance to enable Gemma NER for names and geographic text.
 # Returns a StripResult containing stripped text, entity_map, and all detected spans.

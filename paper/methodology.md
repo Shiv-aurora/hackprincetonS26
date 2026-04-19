@@ -19,6 +19,8 @@ Deterministic regex + optional Gemma NER pass for the 18 HIPAA Safe Harbor ident
 - `entity_map`: dict mapping placeholder → original value (never leaves the local process)
 - `spans`: list of `SensitiveSpan` objects with character offsets
 
+**Extension (H₁' experiment):** In the revised pipeline, quasi-identifier spans detected by `entity_extractor.py` are also replaced with typed placeholders (e.g., `<COMPOUND_CODE_1>`) before proxy synthesis, using the new `apply_span_stripping` function in `safe_harbor.py`. The `entity_map` is extended in place, and `answer_applier.py` restores original values unchanged. This closes the gap between HIPAA Safe Harbor coverage and domain-specific clinical trial quasi-identifiers.
+
 ### Layer 2 — Neural Router (`src/ngsp/router.py`)
 
 Gemma 4 (`google/gemma-4-E2B-it`) classifies the stripped input into one of three paths:

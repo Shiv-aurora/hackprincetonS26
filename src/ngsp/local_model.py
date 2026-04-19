@@ -112,8 +112,14 @@ class LocalModel:
 
     # Load the tokenizer + model per the resolved config; called once per LocalModel instance.
     def _load(self) -> tuple[Any, Any]:
+        import multiprocessing
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        # Use all available CPU cores for intra-op parallelism on CPU inference.
+        n_cpu = int(os.environ.get("NGSP_NUM_THREADS", multiprocessing.cpu_count()))
+        torch.set_num_threads(n_cpu)
+        torch.set_num_interop_threads(max(1, n_cpu // 2))
 
         load_dotenv()
         token = os.environ.get("HF_TOKEN")

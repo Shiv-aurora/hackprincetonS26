@@ -65,6 +65,35 @@ The checker correctly handles this case: it walks backward from the `def` line t
 
 **`__init__` files.** Files with no function definitions (e.g., `src/ngsp/__init__.py`, `src/attacks/__init__.py`) pass trivially with zero defs and zero violations.
 
+## Spot-Check: H₁' System Changes (2026-04-18)
+
+Two files were modified as part of the quasi-identifier stripping fix. Manual spot-check confirms both satisfy the one-line comment invariant.
+
+### `src/ngsp/safe_harbor.py` — new public function `apply_span_stripping`
+
+```python
+# Replace spans in `text` with typed placeholders, extending entity_map in place; returns updated text.
+def apply_span_stripping(
+    text: str,
+    spans: "list[Any]",
+    entity_map: "dict[str, str]",
+    counters: "dict[str, int] | None" = None,
+) -> str:
+```
+
+One-line comment present and correctly describes the function's contract. **PASS.**
+
+### `src/ngsp/pipeline.py` — Phase B extension
+
+The added call site in `Pipeline.run` is not a new `def`, so no comment requirement applies. The existing `run` method retains its comment:
+
+```python
+# Run the full pipeline for one user request; mutates `budget` to record ε spent.
+def run(self, user_input: str, budget: SessionBudget) -> PipelineOutput:
+```
+
+**PASS.** No new violations introduced by the H₁' patch.
+
 ## CI Integration
 
 To run the check in CI, add to your test runner:

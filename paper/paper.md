@@ -1,6 +1,6 @@
 # Neural-Guided Semantic Proxy (NGSP): Privacy-Preserving Mediation of Clinical Trial Documents to Consumer LLM Interfaces
 
-**Abstract.** Clinical trial staff routinely paste sensitive documents — Serious Adverse Event narratives, protocol excerpts, monitoring reports — into consumer LLM chat interfaces. Existing defenses either over-redact (destroying utility) or under-redact (leaking quasi-identifiers and protocol structure). We present NGSP, a Neural-Guided Semantic Proxy that runs Gemma 4 locally as a privacy filter composed with deterministic HIPAA Safe Harbor stripping and a calibrated (ε, δ)-differentially-private bottleneck. A three-way router directs inputs to one of three paths: abstract query synthesis (breaking injective entity linkage), DP-noised proxy generation (providing formal guarantees), or local-only answering (for content-inseparable tasks). We evaluate the system against five adversarial attack classes — verbatim scan, cross-encoder similarity, trained inversion (primary threat model), membership inference, and utility regression — on a synthetic clinical trial corpus of 1,200 documents with ground-truth sensitive span annotations. At ε = 3.0, δ = 1e-5, we report [results pending execution of experiments]. The hypothesis that the composed system simultaneously bounds inversion span-recovery F1 ≤ 0.09 and preserves utility ≥ 0.85 is [pending]. We report all results including negative findings.
+**Abstract.** Clinical trial staff routinely paste sensitive documents — Serious Adverse Event narratives, protocol excerpts, monitoring reports — into consumer LLM chat interfaces. Existing defenses either over-redact (destroying utility) or under-redact (leaking quasi-identifiers and protocol structure). We present NGSP, a Neural-Guided Semantic Proxy that runs Gemma 4 locally as a privacy filter composed with deterministic HIPAA Safe Harbor stripping and a calibrated (ε, δ)-differentially-private bottleneck. A three-way router directs inputs to one of three paths: abstract query synthesis (breaking injective entity linkage), DP-noised proxy generation (providing formal guarantees), or local-only answering (for content-inseparable tasks). We evaluate the system against five adversarial attack classes — verbatim scan, cross-encoder similarity, trained inversion (primary threat model), membership inference, and utility regression — on a synthetic clinical trial corpus of 1,200 documents with ground-truth sensitive span annotations. At ε = 3.0, δ = 1e-5, we report: verbatim literal leak rate = 0.4952, cross-encoder similarity = 0.9345, inversion span-recovery F1 = 0.6686 (random baseline 0.4066), membership inference AUC = 0.5000, utility ratio pending. H₁ (privacy) is falsified: inversion F1 exceeds the Expert Determination threshold of 0.09 by 7.4×. The root cause is that domain quasi-identifiers (compound codes, AE grades, efficacy values) fall outside the 18 HIPAA Safe Harbor identifiers and pass through the stripper verbatim, giving the inversion attacker a direct signal. Membership inference (AUC = 0.5000) is the one positive result. We report all findings including negative results.
 
 ---
 
@@ -98,17 +98,18 @@ The calibration sweep over ε ∈ {0.5, 1.0, 2.0, 3.0, 5.0, 10.0} reveals the op
 
 ### 6.2 Attack Results at ε = 3.0
 
-**Attack 1 (Verbatim):** [Values from `results["verbatim"]` in attacks_eps3.0.json.]
+**Attack 1 (Verbatim):** overall_literal_leak_rate = **0.4952**. Quasi-identifiers (COMPOUND_CODE, AE_GRADE, EFFICACY_VALUE) dominate; Safe Harbor strips HIPAA identifiers but not this class.
 
-**Attack 2 (Similarity):** [Values from `results["similarity"]`.]
+**Attack 2 (Similarity):** mean_sim = **0.9345**. Proxy text is semantically near-identical to original — query synthesis preserves task intent but for narrative documents the intent is inseparable from entity content.
 
-**Attack 3 (Inversion):** [Values from `results["inversion"]`.]
-- H₁ **[PASS/FAIL]**: overall_f1 = [value] vs. threshold 0.09
+**Attack 3 (Inversion):** overall_f1 = **0.6686**, baseline = **0.4066** (+0.262 lift).
+- H₁ **FAIL**: F1 = 0.6686 vs. threshold 0.09 (7.4× above).
 
-**Attack 4 (Membership):** [Values from `results["membership"]`.]
+**Attack 4 (Membership):** mean_auc = **0.5000**.
+- H₁ sub-metric **PASS**: exactly at chance; entity presence is not detectable from proxy embeddings.
 
-**Attack 5 (Utility):** [Values from `results["utility"]`.]
-- H₂ **[PASS/FAIL]**: utility_ratio = [value] vs. threshold 0.85
+**Attack 5 (Utility):** _pending_.
+- H₂ verdict: **PENDING**.
 
 ### 6.3 Ablation Study
 

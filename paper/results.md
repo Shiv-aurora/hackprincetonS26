@@ -1,12 +1,8 @@
 # Results
 
-> **Note:** This file documents the result structure and expected findings. Populate with actual values by running:
-> ```bash
-> python experiments/run_attacks.py --epsilon 3.0 --n-docs 50
-> python experiments/ablations.py --n-docs 20
-> python experiments/calibrate_epsilon.py
-> ```
-> All claims must be traceable to a file in `experiments/results/`.
+> **Experimental configuration:** ε = 3.0, δ = 1e-5, n_docs = 50, seed = 42, model = `google/gemma-4-E2B-it`.
+> Attacks 1–4 sourced from `experiments/results/run_attacks_eps3.0.log` (2026-04-18). Attack 5 pending.
+> All claims traceable to `experiments/results/`.
 
 ## 1. Privacy-Utility Curve
 
@@ -17,7 +13,7 @@ Produced by `experiments/calibrate_epsilon.py`. For each ε ∈ {0.5, 1.0, 2.0, 
 | 0.5 | ~6.60 | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | 1.0 | ~3.30 | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | 2.0 | ~1.65 | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
-| **3.0** | **~1.10** | **_TBD_** | **_TBD_** | **_TBD_** | **_TBD_** |
+| **3.0** | **~1.10** | **0.6686** | **_TBD_** | **FAIL** | **_TBD_** |
 | 5.0 | ~0.66 | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | 10.0 | ~0.33 | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 
@@ -42,7 +38,9 @@ Result source: `experiments/results/attacks_eps3.0.json`
 | EFFICACY_VALUE | _TBD_ | _TBD_ |
 | **Overall** | **_TBD_** | **_TBD_** |
 
-**Expected finding:** Safe Harbor stripping should drive literal leak rates to near zero for structured identifiers (NAME, DATE, SSN, SITE_ID). Compound codes and quasi-identifiers are handled by NGSP; their residual rates test the neural components' marginal value.
+| **Overall** | **0.4952** | **_TBD_** |
+
+**Finding:** Literal leak rate is 49× above the 0.01 threshold. Root cause: quasi-identifier categories (COMPOUND_CODE, AE_GRADE, EFFICACY_VALUE, SITE_ID) fall outside the 18 HIPAA Safe Harbor identifiers and pass through the stripper by design. The NGSP neural components do not suppress them at ε = 3.0. **H₁ sub-metric: FALSIFIED.**
 
 ### Attack 2 — Cross-Encoder Similarity
 
@@ -53,7 +51,12 @@ Result source: `experiments/results/attacks_eps3.0.json`
 | p95_sim | _TBD_ |
 | fraction_above_threshold (0.85) | _TBD_ |
 
-**Expected finding:** The abstract-extractable path (query synthesis) should produce low similarity scores because the synthesized query captures task intent but drops entity specifics. The DP path may produce higher similarity scores since the proxy text retains sentence structure.
+| mean_sim | 0.9345 |
+| median_sim | _TBD_ |
+| p95_sim | _TBD_ |
+| fraction_above_threshold (0.85) | _TBD_ |
+
+**Finding:** 93% mean semantic similarity — the proxy is near-identical to the original by cross-encoder measure. Query synthesis preserves task intent but for SAE narratives the task intent IS the content, so the synthesized proxy retains entity-laden structure.
 
 ### Attack 3 — Trained Inversion (Primary Result)
 
@@ -65,9 +68,13 @@ Result source: `experiments/results/attacks_eps3.0.json`
 | n_train | _TBD_ |
 | n_eval | _TBD_ |
 
-**H₁ verdict:** _TBD_ (threshold: overall_f1 ≤ 0.09)
+| overall_f1 | 0.6686 |
+| baseline_random_f1 | 0.4066 |
+| control_shuffle_f1 | _TBD_ |
+| n_train | _TBD_ |
+| n_eval | _TBD_ |
 
-**Expected finding:** The shuffle-pair control F1 should be close to the random baseline, confirming that any learned signal above baseline is real and not a training artifact. If the main model F1 is also near baseline, NGSP successfully breaks the proxy→span mapping.
+**H₁ verdict: FALSIFIED** — F1 = 0.6686 is 7.4× above the Expert Determination threshold of 0.09. The attacker lifts +0.262 F1 points above random baseline, confirming genuine learned signal. The dominant cause is verbatim quasi-identifier presence in proxy text (see Attack 1).
 
 ### Attack 4 — Membership Inference
 
@@ -78,7 +85,9 @@ Result source: `experiments/results/attacks_eps3.0.json`
 | _top entity 3_ | _TBD_ | _TBD_ | _TBD_ |
 | **mean_auc** | **_TBD_** | | |
 
-**Expected finding:** AUC near 0.5 indicates the proxy text does not expose whether a specific entity was mentioned in the original document. AUC significantly above 0.5 would indicate residual membership signal.
+| **mean_auc** | **0.5000** | | |
+
+**Finding: PASSES** (threshold ≤ 0.55). Membership inference is exactly at chance. Despite failing span-level privacy (Attack 3), the system successfully hides entity presence at the frequency level — the one positive privacy result.
 
 ### Attack 5 — Downstream Utility
 
@@ -105,6 +114,19 @@ Result source: `experiments/results/ablations.json`
 **Expected finding (H₃):** No single component should achieve both privacy and utility thresholds simultaneously. Safe Harbor alone eliminates structured PHI but leaves quasi-identifiers exposed. Query synthesis breaks the inversion signal for abstract-extractable inputs but cannot handle all document types. DP alone provides formal guarantees but may degrade utility at tight ε values. The full system combines all three.
 
 **Negative result to report honestly:** If the ablation shows that Safe Harbor alone already achieves F1 ≤ 0.09 (because the synthetic corpus's sensitive spans are dominated by Safe Harbor categories), that is a negative result for H₃ and should be stated clearly. It would mean NGSP provides marginal privacy improvement over simpler baselines on this corpus — a finding worth reporting.
+
+## 5. Patched Pipeline Results (QI Stripping, ε=3.0)
+
+System change: `pipeline.py` extended to strip quasi-identifier spans with typed placeholders before proxy synthesis. Entity map restoration unchanged.
+
+| Metric | Original (no QI strip) | Patched (QI strip) | Threshold | Verdict |
+|--------|----------------------|-------------------|-----------|---------|
+| Verbatim leak rate | 0.4952 | _TBD_ | ≤ 0.05 | _TBD_ |
+| Inversion F1 | 0.6686 | _TBD_ | ≤ 0.09 | _TBD_ |
+| Membership AUC | 0.5000 | _TBD_ | ≤ 0.55 | PASS (baseline) |
+| Utility ratio | _TBD_ | _TBD_ | ≥ 0.85 | _TBD_ |
+
+Result source: `experiments/results/run_attacks_eps3.0_qi_strip.log` (in progress)
 
 ## 4. Comment Audit
 

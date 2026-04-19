@@ -61,13 +61,15 @@ def _build_pairs(
     from data.annotator import annotate
 
     pairs = []
-    for doc in docs:
+    n = len(docs)
+    for i, doc in enumerate(docs):
+        print(f"  [proxy pairs] {i+1}/{n} — {doc.doc_id}", flush=True)
         budget = SessionBudget(epsilon_cap=epsilon, delta=delta)
         try:
             out = pipeline.run(doc.text, budget)
             proxy = out.proxy_text or strip_safe_harbor(doc.text, local_model).stripped_text
         except Exception as exc:
-            print(f"  [run_attacks] pipeline error on {doc.doc_id}: {exc}", file=sys.stderr)
+            print(f"  [run_attacks] pipeline error on {doc.doc_id}: {exc}", file=sys.stderr, flush=True)
             proxy = strip_safe_harbor(doc.text, None).stripped_text
         spans = annotate(doc)
         pairs.append((doc.text, proxy, spans))

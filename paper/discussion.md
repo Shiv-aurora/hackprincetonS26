@@ -1,5 +1,13 @@
 # Discussion
 
+## 0. Iterative Hypothesis Refinement
+
+The original H₁ was falsified at ε=3.0 by a wide margin (inversion F1=0.6686 vs. threshold 0.09). Root-cause analysis of the attack results identified the failure mechanism: the NGSP pipeline's quasi-identifier extraction step detected sensitive spans (COMPOUND_CODE, AE_GRADE, EFFICACY_VALUE, etc.) but did not replace their values before proxy synthesis. These values passed verbatim into the proxy text, giving the inversion attacker a direct token-level signal.
+
+This is a structurally important negative result: it shows that the *completeness* of the stripping layer matters more than the sophistication of the DP mechanism for this corpus. The DP bottleneck path was designed to handle residual quasi-identifier signal after stripping — but if stripping is incomplete, DP noise alone cannot compensate.
+
+The fix (H₁') extends stripping to cover quasi-identifiers using the already-extracted `qi_spans`, adding zero architectural complexity. Results pending.
+
 ## 1. What the Privacy-Utility Curve Tells Us About Deployability
 
 The central tension in NGSP is that tighter DP noise (smaller ε) provides stronger formal guarantees but degrades the proxy text and therefore the downstream answer quality. The calibration experiment (`experiments/calibrate_epsilon.py`) plots this tradeoff explicitly.
