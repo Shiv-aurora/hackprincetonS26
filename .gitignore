@@ -29,6 +29,7 @@ models/
 *.bin
 *.pt
 *.pth
+.claude/
 
 # raw experiment artifacts — reproducible from code, never committed raw
 experiments/results/raw/
@@ -43,3 +44,12 @@ experiments/results/cache/
 # logs
 *.log
 audit.jsonl
+
+# product build — frontend (node / Vite)
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env*
+!frontend/.env.example
+.context-compass/
+.mcp.json

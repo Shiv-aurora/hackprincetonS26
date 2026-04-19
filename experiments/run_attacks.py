@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
-# Run the minimal re-identification attack over a mixed 30-doc corpus, local half only.
-"""Execute the local half of the NGSP pipeline (strip → extract → route →
-synthesize_query or zero-noise decode_proxy) on a mixed synthetic corpus (default: 15
-SAE narratives + 15 protocol excerpts), then score every proxy with
-attacks.reidentification.
+# Full adversarial attack battery: runs all 5 attack classes at a given ε and saves results.
+"""Run the NGSP attack battery at a specified privacy budget.
 
-The mix is chosen so that both routing paths are sampled: the route_distribution
-experiment showed SAE narratives route to dp_tolerant while protocol excerpts split
-roughly 65/35 between abstract_extractable and dp_tolerant. Pure-SAE corpora produce
-zero abstract_extractable samples, so a mix is required for the cross-path comparison.
+Usage:
+    python experiments/run_attacks.py --epsilon 3.0
+    python experiments/run_attacks.py --epsilon 1.0 --n-docs 30 --seed 42
 
-No remote API calls are made.
-
-Outputs:
-    experiments/results/attack_results.json
+Output:
+    experiments/results/attacks_eps{ε}.json
 """
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 from pathlib import Path
@@ -25,188 +20,145 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parent.parent / "src"
 sys.path.insert(0, str(SRC))
 
+from typing import Any
 
-# Parse the small CLI surface for this experiment.
+
+# Parse CLI flags and return the configuration namespace.
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="NGSP re-identification attack over a mixed synthetic corpus")
-    parser.add_argument("--n-sae", type=int, default=15,
-                        help="Number of SAE narratives to include (default: 15).")
-    parser.add_argument("--n-protocol", type=int, default=15,
-                        help="Number of protocol excerpts to include (default: 15).")
-    parser.add_argument("--seed", type=int, default=42,
-                        help="Seed for corpus generation (default: 42).")
-    parser.add_argument("--sensitivity", type=float, default=1.0,
-                        help="L2 clip bound for dp_tolerant path (default: 1.0).")
-    return parser.parse_args()
+    p = argparse.ArgumentParser(description="NGSP adversarial attack battery")
+    p.add_argument("--epsilon", type=float, default=3.0)
+    p.add_argument("--n-docs", type=int, default=50)
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--delta", type=float, default=1e-5)
+    p.add_argument("--output", type=str, default=None,
+                   help="Output JSON path (default: experiments/results/attacks_eps{ε}.json)")
+    p.add_argument("--inversion-epochs", type=int, default=3,
+                   help="Training epochs for the DistilBERT inversion attacker")
+    p.add_argument("--doc-type", type=str, default="sae",
+                   choices=["sae", "monitoring", "protocol"],
+                   help="Document type to use (sae=100%% dp_tolerant, monitoring=100%% abstract_extractable)")
+    return p.parse_args()
 
 
-# Build the mixed corpus: SAE narratives + protocol excerpts with doc_id-preserving order.
-def _load_mixed_corpus(n_sae: int, n_protocol: int, seed: int) -> list[object]:
-    from data.synthetic_protocol import generate_protocol_excerpts
-    from data.synthetic_sae import generate_sae_narratives
+# Build a serialisable dict from any dataclass instance.
+def _dc_to_dict(obj: Any) -> Any:
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return {k: _dc_to_dict(v) for k, v in dataclasses.asdict(obj).items()}
+    if isinstance(obj, dict):
+        return {k: _dc_to_dict(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_dc_to_dict(v) for v in obj]
+    return obj
 
-    sae = generate_sae_narratives(n=max(n_sae, 20), seed=seed)[:n_sae]
-    protocol = generate_protocol_excerpts(n=max(n_protocol, 20), seed=seed + 1)[:n_protocol]
-    return list(sae) + list(protocol)
 
-
-# Run the local-only portion of the pipeline for one document and return the proxy text.
-# Returns (route_path, proxy_text or None) — None means the doc routed to local_only and
-# is skipped by the attack loop.
-def _local_pipeline(doc_text: str, local_model: object, sensitivity: float) -> tuple[str, str | None, list]:
-    from ngsp.dp_mechanism import clip_to_norm
-    from ngsp.entity_extractor import extract_quasi_identifiers
-    from ngsp.proxy_decoder import decode_proxy
-    from ngsp.query_synthesizer import synthesize_query
-    from ngsp.router import route
+# Generate (original_text, proxy_text, ground_truth_spans) triples from the corpus.
+def _build_pairs(
+    docs: list[Any],
+    pipeline: Any,
+    epsilon: float,
+    delta: float,
+    local_model: Any,
+) -> list[tuple[str, str, list[Any]]]:
+    from ngsp.pipeline import SessionBudget
     from ngsp.safe_harbor import strip_safe_harbor
+    from data.annotator import annotate
 
-    strip = strip_safe_harbor(doc_text, local_model)
-    qi_spans = extract_quasi_identifiers(strip.stripped_text, local_model)
-    all_spans = strip.spans + qi_spans
-    decision = route(strip.stripped_text, all_spans, local_model)
-    path = decision.path
-
-    if path == "local_only":
-        return path, None, all_spans
-
-    if path == "abstract_extractable":
-        proxy = synthesize_query(strip.stripped_text, all_spans, local_model)
-        return path, proxy, all_spans
-
-    # dp_tolerant: use the DP bottleneck with a ZERO noise vector (ε = ∞ best case).
-    _, hidden_vec = local_model.generate_with_hidden_states(  # type: ignore[attr-defined]
-        strip.stripped_text, layer=-1, max_tokens=64
-    )
-    clipped = clip_to_norm(hidden_vec, sensitivity)
-    # No noise is added: we measure what survives proxy generation structurally.
-    proxy = decode_proxy(strip.stripped_text, clipped, all_spans, local_model)
-    return path, proxy, all_spans
+    pairs = []
+    n = len(docs)
+    for i, doc in enumerate(docs):
+        print(f"  [proxy pairs] {i+1}/{n} — {doc.doc_id}", flush=True)
+        budget = SessionBudget(epsilon_cap=epsilon, delta=delta)
+        try:
+            out = pipeline.run(doc.text, budget)
+            proxy = out.proxy_text or strip_safe_harbor(doc.text, local_model).stripped_text
+        except Exception as exc:
+            print(f"  [run_attacks] pipeline error on {doc.doc_id}: {exc}", file=sys.stderr, flush=True)
+            proxy = strip_safe_harbor(doc.text, None).stripped_text
+        spans = annotate(doc)
+        pairs.append((doc.text, proxy, spans))
+    return pairs
 
 
-# Render a summary table of per-category verbatim leakage rate + mean Jaccard.
-def _format_summary(summary: dict[str, dict[str, float | int]], title: str = "") -> str:
-    header = f"{'category':<22} {'n':>4} {'verb_hits':>10} {'leak_rate':>10} {'mean_jac':>10}"
-    lines = []
-    if title:
-        lines.append(title)
-    lines.extend([header, "-" * len(header)])
-    for cat in sorted(summary.keys()):
-        b = summary[cat]
-        lines.append(
-            f"{cat:<22} {int(b['n_spans']):>4} {int(b['verbatim_hits']):>10} "
-            f"{float(b['verbatim_leak_rate']):>10.4f} {float(b['mean_jaccard']):>10.4f}"
-        )
-    return "\n".join(lines)
-
-
-# Entry point: load docs, run local pipeline + attack on each, aggregate and save.
+# Entry point: run all attacks, print summary, write results JSON.
 def main() -> int:
     args = parse_args()
-    print(f"[attacks] n_sae={args.n_sae}, n_protocol={args.n_protocol}, "
-          f"seed={args.seed}", flush=True)
-
-    from attacks.reidentification import DocAttackResult, run_attack, summarize
-    from ngsp.local_model import LocalModel
-
-    print("[attacks] loading local model …", flush=True)
-    local_model = LocalModel()
-
-    # MPS warmup — first generation compiles shaders; keeps per-doc times stable.
-    import time
-    t0 = time.time()
-    _ = local_model.generate("warmup", max_tokens=8)
-    print(f"[attacks] MPS warmup {time.time() - t0:.1f}s "
-          f"(device={local_model.device}, dtype={local_model.dtype_name})", flush=True)
-
-    docs = _load_mixed_corpus(args.n_sae, args.n_protocol, args.seed)
-    print(f"[attacks] loaded {len(docs)} documents "
-          f"({args.n_sae} SAE + {args.n_protocol} protocol)", flush=True)
-
-    results: list[DocAttackResult] = []
-    skipped_local_only = 0
-    failures = 0
-    route_counts = {"abstract_extractable": 0, "dp_tolerant": 0, "local_only": 0}
-
-    for i, doc in enumerate(docs):
-        try:
-            path, proxy, all_spans = _local_pipeline(doc.text, local_model, args.sensitivity)
-        except Exception as exc:
-            print(f"  [attacks] doc {i} ({doc.doc_id}) local-pipeline error: {exc}",
-                  file=sys.stderr)
-            failures += 1
-            continue
-
-        route_counts[path] = route_counts.get(path, 0) + 1
-
-        if path == "local_only" or proxy is None:
-            skipped_local_only += 1
-            continue
-
-        # The attack uses the ground-truth spans attached to the synthetic doc so the
-        # targets are known exactly — Safe Harbor + quasi-identifier detectors have
-        # their own recall story that is measured elsewhere.
-        attack = run_attack(
-            doc_id=doc.doc_id,
-            route=path,
-            proxy_text=proxy,
-            spans=doc.spans,
-        )
-        results.append(attack)
-
-        if (i + 1) % 5 == 0:
-            print(f"  [attacks] processed {i + 1}/{len(docs)}", flush=True)
-
-    summary_all = summarize(results)
-    summary_abs = summarize([r for r in results if r.route == "abstract_extractable"])
-    summary_dp = summarize([r for r in results if r.route == "dp_tolerant"])
-
-    print()
-    print(f"[attacks] route counts across {len(docs)} docs: {route_counts}")
-    print(f"[attacks] attack evaluated on {len(results)} proxies "
-          f"(skipped_local_only={skipped_local_only}, failures={failures})")
-    print()
-    print(_format_summary(summary_all, title="=== OVERALL (all paths combined) ==="))
-    print()
-    print(_format_summary(summary_abs,
-                          title="=== abstract_extractable path ==="))
-    print()
-    print(_format_summary(summary_dp, title="=== dp_tolerant path ==="))
-    print()
-
-    out = {
-        "n_docs": len(docs),
-        "n_sae": args.n_sae,
-        "n_protocol": args.n_protocol,
-        "seed": args.seed,
-        "route_counts": route_counts,
-        "skipped_local_only": skipped_local_only,
-        "failures": failures,
-        "summary_by_category": summary_all,
-        "summary_by_category_abstract_extractable": summary_abs,
-        "summary_by_category_dp_tolerant": summary_dp,
-        "per_doc": [
-            {
-                "doc_id": r.doc_id,
-                "route": r.route,
-                "spans_tested": [
-                    {
-                        "category": s.category,
-                        "char_len": s.char_len,
-                        "verbatim_match": s.verbatim_match,
-                        "jaccard": s.jaccard,
-                    }
-                    for s in r.spans_tested
-                ],
-            }
-            for r in results
-        ],
-    }
-    out_path = Path("experiments/results/attack_results.json")
+    out_path = Path(args.output) if args.output else \
+        Path(f"experiments/results/attacks_eps{args.epsilon}.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(out, indent=2))
-    print(f"[attacks] results saved → {out_path}")
+
+    print(f"[run_attacks] ε={args.epsilon}, n_docs={args.n_docs}, seed={args.seed}, doc_type={args.doc_type}")
+
+    from ngsp.local_model import LocalModel
+    from ngsp.pipeline import Pipeline
+    from ngsp.remote_client import RemoteClient
+    from attacks.verbatim import run_verbatim
+    from attacks.similarity import run_similarity
+    from attacks.inversion import run_inversion
+    from attacks.membership import run_membership
+    from attacks.utility import run_utility
+
+    print("[run_attacks] loading models …")
+    local_model = LocalModel()
+    remote_client = RemoteClient()
+    pipeline = Pipeline(local_model=local_model, remote_client=remote_client)
+
+    # Load documents from the requested type; monitoring routes 100% abstract_extractable.
+    if args.doc_type == "monitoring":
+        from data.synthetic_monitoring import generate_monitoring_reports
+        docs = generate_monitoring_reports(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
+        print(f"[run_attacks] loaded {len(docs)} monitoring reports (100% abstract_extractable)")
+    elif args.doc_type == "protocol":
+        from data.synthetic_protocol import generate_protocol_excerpts
+        docs = generate_protocol_excerpts(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
+        print(f"[run_attacks] loaded {len(docs)} protocol excerpts (~65% abstract_extractable)")
+    else:
+        from data.synthetic_sae import generate_sae_narratives
+        docs = generate_sae_narratives(n=max(args.n_docs, 20), seed=args.seed)[:args.n_docs]
+        print(f"[run_attacks] loaded {len(docs)} SAE narratives (100% dp_tolerant)")
+
+    print("[run_attacks] generating proxy pairs …")
+    triples = _build_pairs(docs, pipeline, args.epsilon, args.delta, local_model)
+    proxy_span_pairs = [(proxy, spans) for _, proxy, spans in triples]
+    text_pairs = [(orig, proxy) for orig, proxy, _ in triples]
+
+    results: dict[str, Any] = {
+        "epsilon": args.epsilon,
+        "delta": args.delta,
+        "n_docs": len(triples),
+        "seed": args.seed,
+        "local_model": local_model.config.model_id,
+        "remote_model": remote_client.model,
+    }
+
+    print("[run_attacks] Attack 1 — verbatim …")
+    results["verbatim"] = _dc_to_dict(run_verbatim(proxy_span_pairs))
+    print(f"  literal_leak_rate={results['verbatim']['overall_literal_leak_rate']:.4f}")
+
+    print("[run_attacks] Attack 2 — similarity …")
+    results["similarity"] = _dc_to_dict(run_similarity(text_pairs))
+    print(f"  mean_sim={results['similarity']['mean_sim']:.4f}")
+
+    print("[run_attacks] Attack 3 — inversion (DistilBERT) …")
+    results["inversion"] = _dc_to_dict(
+        run_inversion(proxy_span_pairs, seed=args.seed, n_epochs=args.inversion_epochs)
+    )
+    print(f"  overall_f1={results['inversion']['overall_f1']:.4f}  "
+          f"(random_baseline={results['inversion']['baseline_random_f1']:.4f})")
+
+    print("[run_attacks] Attack 4 — membership inference …")
+    results["membership"] = _dc_to_dict(
+        run_membership(proxy_span_pairs, seed=args.seed)
+    )
+    print(f"  mean_auc={results['membership']['mean_auc']:.4f}")
+
+    print("[run_attacks] Attack 5 — utility …")
+    results["utility"] = _dc_to_dict(
+        run_utility(docs, pipeline, remote_client, seed=args.seed)
+    )
+    print(f"  utility_ratio={results['utility']['utility_ratio']:.4f}")
+
+    out_path.write_text(json.dumps(results, indent=2))
+    print(f"[run_attacks] done → {out_path}")
     return 0
 
 

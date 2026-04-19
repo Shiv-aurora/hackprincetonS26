@@ -17,7 +17,7 @@ from ngsp.proxy_decoder import decode_proxy
 from ngsp.query_synthesizer import synthesize_query
 from ngsp.remote_client import RemoteClient
 from ngsp.router import RouteDecision, route
-from ngsp.safe_harbor import StripResult, strip_safe_harbor
+from ngsp.safe_harbor import StripResult, apply_span_stripping, strip_safe_harbor
 
 
 @dataclass
@@ -91,8 +91,11 @@ class Pipeline:
         stripped = strip.stripped_text
         entity_map = strip.entity_map
 
-        # ── Phase B: Quasi-identifier extraction ──────────────────────────────────
+        # ── Phase B: Quasi-identifier extraction + stripping ──────────────────────
         qi_spans = extract_quasi_identifiers(stripped, self.local_model)
+        # Replace quasi-identifier values with typed placeholders in the proxy text,
+        # extending entity_map so answer_applier can restore them in the final response.
+        stripped = apply_span_stripping(stripped, qi_spans, entity_map)
         all_spans = strip.spans + qi_spans
         span_categories = sorted({sp.category.value for sp in all_spans})
 

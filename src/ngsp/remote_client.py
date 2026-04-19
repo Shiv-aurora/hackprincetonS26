@@ -1,4 +1,4 @@
-# Anthropic API wrapper with canary-leak pre-check and hash-only audit logging.
+# OpenAI API wrapper with canary-leak pre-check and hash-only audit logging.
 from __future__ import annotations
 
 import hashlib
@@ -21,12 +21,12 @@ class CanaryLeakError(RuntimeError):
 
 
 DEFAULT_AUDIT_LOG_PATH = Path("experiments/results/audit.jsonl")
-DEFAULT_MODEL = "claude-opus-4-7"
+DEFAULT_MODEL = "gpt-4o-mini"
 
 # Sentinel key value that enables offline/mock mode for experiments that must not hit
-# the Anthropic API. When the key equals this value, RemoteClient.complete() returns a
-# fixed canned response and never instantiates an Anthropic SDK client.
-MOCK_API_KEY = "sk-ant-mock"
+# the OpenAI API. When the key equals this value, RemoteClient.complete() returns a
+# fixed canned response and never instantiates an OpenAI SDK client.
+MOCK_API_KEY = "sk-openai-mock"
 MOCK_RESPONSE = "[MOCK RESPONSE: remote call skipped in offline mode]"
 
 
@@ -58,7 +58,7 @@ def _now_iso() -> str:
 
 
 class RemoteClient:
-    # Thin wrapper around the Anthropic Messages API enforcing canary + audit invariants.
+    # Thin wrapper around the OpenAI Chat Completions API enforcing canary + audit invariants.
     def __init__(
         self,
         model: str | None = None,
@@ -68,31 +68,31 @@ class RemoteClient:
         _client: Any | None = None,
     ) -> None:
         load_dotenv()
-        resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
-        if not resolved_key or resolved_key == "sk-ant-REPLACE_ME":
+        resolved_key = api_key or os.environ.get("OPENAI_API_KEY")
+        if not resolved_key or resolved_key == "sk-REPLACE_ME":
             raise ValueError(
-                "ANTHROPIC_API_KEY is missing or unset in the environment. "
+                "OPENAI_API_KEY is missing or unset in the environment. "
                 "Copy .env.example to .env and fill in a real key."
             )
         self._mock_mode = resolved_key == MOCK_API_KEY
-        self.model = model or os.environ.get("ANTHROPIC_MODEL") or DEFAULT_MODEL
+        self.model = model or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL
         self.audit_log_path = Path(audit_log_path) if audit_log_path else DEFAULT_AUDIT_LOG_PATH
         if _client is not None:
             self._client = _client
         elif self._mock_mode:
-            # Offline mode: no Anthropic SDK instance is created. complete() short-circuits.
+            # Offline mode: no OpenAI SDK instance is created. complete() short-circuits.
             self._client = None
         else:
-            from anthropic import Anthropic  # local import: keeps module import cheap
+            from openai import OpenAI  # local import: keeps module import cheap
 
-            self._client = Anthropic(api_key=resolved_key, max_retries=max_retries)
+            self._client = OpenAI(api_key=resolved_key, max_retries=max_retries)
 
     @property
     # True when RemoteClient is running in offline/mock mode (no real API calls).
     def mock_mode(self) -> bool:
         return self._mock_mode
 
-    # Call the Anthropic Messages API after canary scanning and write a hashed audit line.
+    # Call the OpenAI Chat Completions API after canary scanning and write a hashed audit line.
     def complete(self, prompt: str, system: str | None, max_tokens: int) -> str:
         request_id = uuid.uuid4().hex
         prompt_hash = _sha256(prompt)
@@ -141,16 +141,19 @@ class RemoteClient:
             )
             return response_text
 
+        messages: list[dict[str, str]] = []
+        if system is not None:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
         kwargs: dict[str, Any] = {
             "model": self.model,
             "max_tokens": max_tokens,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
         }
-        if system is not None:
-            kwargs["system"] = system
 
         try:
-            msg = self._client.messages.create(**kwargs)
+            completion = self._client.chat.completions.create(**kwargs)
         except Exception as exc:
             self._write_audit(
                 _AuditRecord(
@@ -170,7 +173,7 @@ class RemoteClient:
             )
             raise
 
-        response_text = _extract_text(msg)
+        response_text = _extract_text(completion)
         self._write_audit(
             _AuditRecord(
                 request_id=request_id,
@@ -196,16 +199,15 @@ class RemoteClient:
             f.write(json.dumps(record.__dict__, separators=(",", ":")) + "\n")
 
 
-# Pull the first text block out of an Anthropic Messages API response.
-def _extract_text(msg: Any) -> str:
-    content = getattr(msg, "content", None)
-    if not content:
-        raise RuntimeError("Anthropic response has empty content; expected at least one block.")
-    first = content[0]
-    text = getattr(first, "text", None)
+# Pull the assistant text out of an OpenAI Chat Completions response.
+def _extract_text(completion: Any) -> str:
+    choices = getattr(completion, "choices", None)
+    if not choices:
+        raise RuntimeError("OpenAI response has no choices; expected at least one.")
+    message = getattr(choices[0], "message", None)
+    if message is None:
+        raise RuntimeError("OpenAI response first choice has no message.")
+    text = getattr(message, "content", None)
     if text is None:
-        raise RuntimeError(
-            f"Anthropic response first block is not a text block "
-            f"(type={getattr(first, 'type', type(first).__name__)})."
-        )
+        raise RuntimeError("OpenAI response message has no content.")
     return text
