@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// App: root component — wraps the full shell with LayoutProvider and wires TitleBar, ActivityBar, SplitterGroup, and BottomDock.
+// App: root component — wraps the full shell with LayoutProvider, ReviewerContextProvider, and wires TitleBar, ActivityBar, SplitterGroup, and BottomDock.
 import TitleBar from "./components/TitleBar";
 import ActivityBar from "./components/ActivityBar";
 import { SplitterGroup } from "./layout/SplitterGroup";
 import { BottomDock } from "./layout/BottomDock";
 import { LayoutProvider, useLayoutState } from "./layout/useLayoutState";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { ReviewerContextProvider } from "./views/reviewer/ReviewerContext";
 
 // Inner shell that has access to LayoutProvider context.
 function AppShell() {
@@ -44,11 +45,13 @@ function AppShell() {
   );
 }
 
-// Root export — wraps AppShell in the layout context provider.
+// Root export — wraps AppShell in the layout context provider and the reviewer shared context.
 export default function App() {
   return (
     <LayoutProvider>
-      <AppShell />
+      <ReviewerContextProvider>
+        <AppShell />
+      </ReviewerContextProvider>
     </LayoutProvider>
   );
 }

@@ -1,6 +1,8 @@
 // BottomDock: collapsible forensic log strip at the bottom of the application shell.
 import React, { useRef, useCallback } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { BottomDockForensic } from "./BottomDockForensic";
+import { useForensicStream } from "../hooks/useForensicStream";
 
 interface BottomDockProps {
   expanded: boolean;
@@ -14,6 +16,11 @@ function formatTime(d: Date): string {
   return [d.getHours(), d.getMinutes(), d.getSeconds()]
     .map((n) => String(n).padStart(2, "0"))
     .join(":");
+}
+
+// Format an ISO timestamp string to HH:MM:SS local time for the status line.
+function formatIso(iso: string): string {
+  return formatTime(new Date(iso));
 }
 
 // Drag handle rendered at the top edge of the expanded dock for vertical resizing.
@@ -42,10 +49,14 @@ const DragHandle: React.FC<{
 );
 
 // Expanded forensic log with three columns: Proxy Sent, Cloud Response, Rehydrated.
-const ExpandedDock: React.FC<{ heightPct: number; onResize: (pct: number) => void }> = ({
-  heightPct,
-  onResize,
-}) => {
+// Wraps BottomDockForensic (which renders real rows) plus the drag-resize handle.
+const ExpandedDock: React.FC<{
+  heightPct: number;
+  onResize: (pct: number) => void;
+  entries: import("../hooks/useForensicStream").AuditEntry[];
+  epsilonSpent: number;
+  epsilonCap: number;
+}> = ({ heightPct, onResize, entries, epsilonSpent, epsilonCap }) => {
   const dragging = useRef(false);
   const startY = useRef(0);
   const startPct = useRef(heightPct);
@@ -62,19 +73,20 @@ const ExpandedDock: React.FC<{ heightPct: number; onResize: (pct: number) => voi
   );
 
   // Compute new height percentage from drag position.
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const deltaY = startY.current - e.clientY;
-    const deltaPct = (deltaY / window.innerHeight) * 100;
-    onResize(Math.max(8, Math.min(60, startPct.current + deltaPct)));
-  }, [onResize]);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragging.current) return;
+      const deltaY = startY.current - e.clientY;
+      const deltaPct = (deltaY / window.innerHeight) * 100;
+      onResize(Math.max(8, Math.min(60, startPct.current + deltaPct)));
+    },
+    [onResize]
+  );
 
   // End drag.
   const handlePointerUp = useCallback(() => {
     dragging.current = false;
   }, []);
-
-  const columns = ["Proxy Sent", "Cloud Response", "Rehydrated"];
 
   return (
     <div
@@ -83,48 +95,11 @@ const ExpandedDock: React.FC<{ heightPct: number; onResize: (pct: number) => voi
       onPointerUp={handlePointerUp}
     >
       <DragHandle onDragStart={handleDragStart} />
-      {/* Column headers */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          padding: "0 12px",
-          height: 28,
-          alignItems: "center",
-          flexShrink: 0,
-        }}
-      >
-        {columns.map((col) => (
-          <span
-            key={col}
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "#4b535b",
-            }}
-          >
-            {col}
-          </span>
-        ))}
-      </div>
-      {/* Empty rows area — forensic-and-mcp agent fills this in Phase 6. */}
-      <div style={{ flex: 1, overflow: "auto", padding: "8px 12px" }}>
-        <p
-          style={{
-            fontSize: 11,
-            color: "#2f363d",
-            margin: 0,
-            fontStyle: "italic",
-          }}
-        >
-          Forensic log entries appear here after each /api/complete call.
-          Canary-leak events are highlighted in{" "}
-          <span style={{ color: "var(--color-error)" }}>danger red</span>.
-        </p>
-      </div>
+      <BottomDockForensic
+        entries={entries}
+        epsilonSpent={epsilonSpent}
+        epsilonCap={epsilonCap}
+      />
     </div>
   );
 };
@@ -136,7 +111,14 @@ export const BottomDock: React.FC<BottomDockProps> = ({
   onToggle,
   onResize,
 }) => {
-  const nowStr = formatTime(new Date());
+  // Live forensic stream — drives both the collapsed status line and the expanded view.
+  const { entries, epsilonSpent, epsilonCap } = useForensicStream();
+
+  // Build the collapsed status line text from the most recent entry.
+  const lastEntry = entries.length > 0 ? entries[entries.length - 1] : null;
+  const statusText = lastEntry
+    ? `${formatIso(lastEntry.timestamp)} · ${lastEntry.status} · ${lastEntry.model} · ε ${epsilonSpent.toFixed(2)}`
+    : `${formatTime(new Date())} · No cloud calls yet · ε ${epsilonSpent.toFixed(2)}`;
 
   return (
     <div
@@ -149,7 +131,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({
         userSelect: expanded ? "none" : "auto",
       }}
     >
-      {expanded && <ExpandedDock heightPct={heightPct} onResize={onResize} />}
+      {expanded && (
+        <ExpandedDock
+          heightPct={heightPct}
+          onResize={onResize}
+          entries={entries}
+          epsilonSpent={epsilonSpent}
+          epsilonCap={epsilonCap}
+        />
+      )}
 
       {/* Collapsed status line — always visible */}
       <div
@@ -187,7 +177,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
             textOverflow: "ellipsis",
           }}
         >
-          {nowStr} · NGSP ready · ε 0.00
+          {statusText}
         </span>
       </div>
     </div>

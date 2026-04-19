@@ -1,15 +1,18 @@
-# FastAPI backend wrapping the NGSP pipeline: 5 REST endpoints + health check.
+# FastAPI backend wrapping the NGSP pipeline with lifespan, APIRouter, and ε accounting.
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, AsyncGenerator
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Ensure src/ layout is importable when running the backend directly.
@@ -24,6 +27,8 @@ from data.schemas import (
     SensitiveCategory,
 )
 from ngsp.answer_applier import apply_entity_map
+from ngsp.pipeline import Pipeline, SessionBudget
+from ngsp.remote_client import RemoteClient
 from ngsp.safe_harbor import extract_regex_spans
 
 from backend.schemas import (
@@ -31,6 +36,7 @@ from backend.schemas import (
     AnalyzeResponse,
     AuditLogEntry,
     AuditResponse,
+    AuditResponseExtended,
     CompleteRequest,
     CompleteResponse,
     EntityCounts,
@@ -54,8 +60,110 @@ load_dotenv()
 _API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "sk-ant-mock")
 _MOCK_MODE: bool = _API_KEY == "sk-ant-mock" or not _API_KEY.startswith("sk-ant-")
 _VERSION = "0.1.0"
+_EPSILON_CAP = 3.0
+_DELTA = 1e-5
 
-app = FastAPI(title="NGSP Clinical Backend", version=_VERSION)
+# Path to the NGSP file-based audit log (canonical source of truth).
+_AUDIT_LOG_PATH = Path("experiments/results/audit.jsonl")
+
+# In-memory audit cache — rebuilt from the file on startup and on each GET /api/audit.
+_audit_log: list[AuditLogEntry] = []
+
+
+# ---------------------------------------------------------------------------
+# Audit file helpers
+# ---------------------------------------------------------------------------
+
+# Read the NGSP audit.jsonl file and rebuild the in-memory audit log cache.
+def _rebuild_audit_cache() -> None:
+    _audit_log.clear()
+    if not _AUDIT_LOG_PATH.exists():
+        return
+    with _AUDIT_LOG_PATH.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+                # Only ingest records that carry the fields we expose in AuditLogEntry.
+                if "request_id" in record and "status" in record:
+                    _audit_log.append(
+                        AuditLogEntry(
+                            audit_id=record.get("request_id", ""),
+                            timestamp=record.get("timestamp", ""),
+                            route=record.get("route", record.get("kind", "unknown")),
+                            entities_count=record.get("entities_count", 0),
+                            blocked=record.get("status") == "canary_leak",
+                        )
+                    )
+            except (json.JSONDecodeError, Exception):  # noqa: BLE001
+                pass
+
+
+# Atomically truncate (overwrite) the audit JSONL file with an empty file.
+def _truncate_audit_file() -> None:
+    _AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _AUDIT_LOG_PATH.write_text("", encoding="utf-8")
+
+
+# Append one audit record dict to the JSONL file and the in-memory cache.
+def _append_audit(entry: AuditLogEntry, record: dict[str, Any]) -> None:
+    _AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with _AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, separators=(",", ":")) + "\n")
+    _audit_log.append(entry)
+
+
+# ---------------------------------------------------------------------------
+# Lifespan — build pipeline once and store on app.state
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+# Construct shared Pipeline + SessionBudget on startup; tear down gracefully on shutdown.
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    skip_local = os.environ.get("NGSP_SKIP_LOCAL_MODEL", "0") == "1"
+
+    # Construct local model (may be skipped for fast test starts).
+    local_model: Any = None
+    if not skip_local:
+        try:
+            from ngsp.local_model import LocalModel, LocalModelConfig
+
+            cfg = LocalModelConfig.from_env()
+            local_model = LocalModel(cfg)
+        except Exception:  # noqa: BLE001 — non-fatal: degrade to regex-only
+            local_model = None
+
+    # Construct RemoteClient (always needed; handles mock mode internally).
+    remote_client = RemoteClient(
+        audit_log_path=_AUDIT_LOG_PATH,
+    )
+
+    # Construct Pipeline with whatever local model we have (None-safe in mock mode).
+    pipeline = Pipeline(local_model=local_model, remote_client=remote_client)
+
+    # Create a fresh process-wide session budget.
+    budget = SessionBudget(epsilon_cap=_EPSILON_CAP, delta=_DELTA)
+
+    # Load audit cache from file.
+    _rebuild_audit_cache()
+
+    app.state.local_model = local_model
+    app.state.remote_client = remote_client
+    app.state.pipeline = pipeline
+    app.state.budget = budget
+
+    yield
+
+    # Shutdown: nothing to release for local_model in mock/skip mode.
+
+
+# ---------------------------------------------------------------------------
+# FastAPI app
+# ---------------------------------------------------------------------------
+
+app = FastAPI(title="NGSP Clinical Backend", version=_VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,9 +178,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# In-memory audit log — resets on server restart; never stores raw content.
-_audit_log: list[AuditLogEntry] = []
 
 # ---------------------------------------------------------------------------
 # Detection patterns (model-free, for demo / offline mode)
@@ -331,25 +436,27 @@ Unresolved at time of reporting.
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# API Router for existing endpoints
 # ---------------------------------------------------------------------------
 
-@app.get("/api/health", response_model=HealthResponse)
+router = APIRouter()
+
+
+@router.get("/health", response_model=HealthResponse)
+# Return server liveness, mock-mode flag, and version string.
 async def api_health() -> HealthResponse:
-    # Return server liveness, mock-mode flag, and version string.
     return HealthResponse(status="ok", mock_mode=_MOCK_MODE, version=_VERSION)
 
 
-@app.post("/api/analyze", response_model=AnalyzeResponse)
+@router.post("/analyze", response_model=AnalyzeResponse)
+# Detect all sensitive spans in the document and return them with tier counts.
 async def api_analyze(req: AnalyzeRequest) -> AnalyzeResponse:
-    # Detect all sensitive spans in the document and return them with tier counts.
     all_entries = _extract_all_entries(req.text)
 
     # Build entity map so we can assign placeholder names to EntityItems.
     _, entity_map, _, _ = _build_full_proxy(req.text)
 
     # Invert entity_map to look up placeholder by original value.
-    # (multiple spans can share the same value — map first occurrence)
     value_to_placeholder: dict[str, str] = {}
     for ph, val in entity_map.items():
         value_to_placeholder.setdefault(val, ph)
@@ -376,9 +483,9 @@ async def api_analyze(req: AnalyzeRequest) -> AnalyzeResponse:
     return AnalyzeResponse(entities=entities, counts=counts)
 
 
-@app.post("/api/proxy", response_model=ProxyResponse)
+@router.post("/proxy", response_model=ProxyResponse)
+# Run the full strip-and-proxy pipeline on the document, returning both texts and mappings.
 async def api_proxy(req: ProxyRequest) -> ProxyResponse:
-    # Run the full strip-and-proxy pipeline on the document, returning both texts and mappings.
     proxy_text, entity_map, _, position_mappings = _build_full_proxy(req.text)
     return ProxyResponse(
         original=req.text,
@@ -388,17 +495,17 @@ async def api_proxy(req: ProxyRequest) -> ProxyResponse:
     )
 
 
-@app.post("/api/route", response_model=RouteResponse)
+@router.post("/route", response_model=RouteResponse)
+# Classify the text into an NGSP routing path using the heuristic (no model).
 async def api_route(req: RouteRequest) -> RouteResponse:
-    # Classify the text into an NGSP routing path using the heuristic (no model).
     all_entries = _extract_all_entries(req.text)
     path, rationale = _heuristic_route(all_entries)
     return RouteResponse(path=path, rationale=rationale)  # type: ignore[arg-type]
 
 
-@app.post("/api/complete", response_model=CompleteResponse)
+@router.post("/complete", response_model=CompleteResponse)
+# Run the full pipeline: proxy → route → LLM (or mock) → rehydrate → audit.
 async def api_complete(req: CompleteRequest) -> CompleteResponse:
-    # Run the full pipeline: proxy → route → LLM (or mock) → rehydrate → audit.
     proxy_text, entity_map, all_entries, _ = _build_full_proxy(req.document)
     route_path, route_rationale = _heuristic_route(all_entries)
     entities_count = len(entity_map)
@@ -434,16 +541,23 @@ async def api_complete(req: CompleteRequest) -> CompleteResponse:
             response_raw = f"[API error: {type(exc).__name__}]"
             response_rehydrated = response_raw
 
-    # Record in audit log (no raw content logged).
-    _audit_log.append(
-        AuditLogEntry(
-            audit_id=audit_id,
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            route=route_path,
-            entities_count=entities_count,
-            blocked=False,
-        )
+    # Build audit entry and write to file + cache.
+    entry = AuditLogEntry(
+        audit_id=audit_id,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        route=route_path,
+        entities_count=entities_count,
+        blocked=False,
     )
+    record: dict[str, Any] = {
+        "request_id": audit_id,
+        "timestamp": entry.timestamp,
+        "kind": "complete",
+        "route": route_path,
+        "entities_count": entities_count,
+        "status": "ok",
+    }
+    _append_audit(entry, record)
 
     return CompleteResponse(
         routing=RoutingInfo(path=route_path, rationale=route_rationale),
@@ -456,17 +570,26 @@ async def api_complete(req: CompleteRequest) -> CompleteResponse:
     )
 
 
-@app.post("/api/audit/reset")
+@router.post("/audit/reset")
+# Clear the in-memory audit cache, truncate the JSONL file, and reset the session ε budget.
 async def api_audit_reset() -> dict:
-    # Clear the in-memory audit log; used by reset-demo.sh between demo runs.
     _audit_log.clear()
+    _truncate_audit_file()
+    # Reset the process-wide budget stored on app.state (app defined in this same module).
+    try:
+        app.state.budget = SessionBudget(epsilon_cap=_EPSILON_CAP, delta=_DELTA)
+    except Exception:  # noqa: BLE001 — app.state may not exist before lifespan runs
+        pass
     return {"status": "ok", "message": "Audit log cleared."}
 
 
-@app.get("/api/audit", response_model=AuditResponse)
-async def api_audit() -> AuditResponse:
-    # Return session-level stats and the full in-memory audit log.
-    proxied = sum(1 for e in _audit_log if e.route != "local_only")
+@router.get("/audit", response_model=AuditResponseExtended)
+# Return session-level stats, the full audit cache, and current ε budget figures.
+async def api_audit() -> AuditResponseExtended:
+    # Use the in-memory cache directly; lifespan already seeded it from the file.
+    # This keeps test isolation when callers clear _audit_log directly.
+
+    proxied = sum(1 for e in _audit_log if e.route not in ("local_only", "unknown"))
     local_only = sum(1 for e in _audit_log if e.route == "local_only")
     blocked = sum(1 for e in _audit_log if e.blocked)
     stats = SessionStats(
@@ -475,4 +598,37 @@ async def api_audit() -> AuditResponse:
         local_only=local_only,
         blocked=blocked,
     )
-    return AuditResponse(session_stats=stats, log=list(_audit_log))
+
+    # Pull ε figures from app.state (set by lifespan on startup).
+    epsilon_spent = 0.0
+    try:
+        budget: SessionBudget = app.state.budget
+        epsilon_spent = budget.epsilon_spent()
+    except Exception:  # noqa: BLE001 — app.state not populated outside lifespan context
+        pass
+
+    return AuditResponseExtended(
+        session_stats=stats,
+        log=list(_audit_log),
+        epsilon_spent=epsilon_spent,
+        epsilon_cap=_EPSILON_CAP,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Register routers
+# ---------------------------------------------------------------------------
+
+app.include_router(router, prefix="/api")
+
+from backend.endpoints.timeline import router as timeline_router
+from backend.endpoints.signal import router as signal_router
+from backend.endpoints.dataset import router as dataset_router
+from backend.endpoints.dashboard import router as dashboard_router
+from backend.endpoints.mcp import router as mcp_router
+
+app.include_router(timeline_router, prefix="/api")
+app.include_router(signal_router, prefix="/api")
+app.include_router(dataset_router, prefix="/api")
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(mcp_router, prefix="/api")

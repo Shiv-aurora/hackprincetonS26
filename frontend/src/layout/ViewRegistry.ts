@@ -1,5 +1,11 @@
 // ViewRegistry: central registry mapping view IDs to their definitions and valid pane placements.
 import type React from "react";
+import { DatasetPreviewView } from "../views/analyst/DatasetPreviewView";
+import { DashboardView } from "../views/analyst/DashboardView";
+import { ChatView } from "./placeholders/ChatView";
+import NarrativeInputView from "../views/reviewer/NarrativeInputView";
+import CaseTimelineView from "../views/reviewer/CaseTimelineView";
+import SignalMapView from "../views/reviewer/SignalMapView";
 
 // All named view identifiers used in the layout system.
 export type ViewId =
@@ -13,33 +19,24 @@ export type ViewId =
 // The three horizontal pane slots in the three-pane layout.
 export type PaneSlot = "left" | "main" | "right";
 
+// Persona identifiers for the two layout presets.
+export type PersonaId = "analyst" | "reviewer";
+
 // Props passed to every view component by PaneContainer.
 export interface ViewProps {
   paneSlot: PaneSlot;
   persona: PersonaId;
 }
 
-// Persona identifiers for the two layout presets.
-export type PersonaId = "analyst" | "reviewer";
-
 // Contract describing a single view that can be placed in a pane.
 export interface ViewDefinition {
   id: ViewId;
   title: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ViewProps imported lazily to avoid circular imports
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ViewProps used via React.FC<any> to avoid importing ViewProps in registry (circular)
   component: React.FC<any>;
   validPanes: PaneSlot[];
   backendDeps: string[];
 }
-
-// Lazy-imported placeholder components to avoid circular deps at registry definition time.
-// These are resolved at runtime via the getter below.
-import { DatasetPreviewPlaceholder } from "./placeholders/DatasetPreviewPlaceholder";
-import { ChatView } from "./placeholders/ChatView";
-import { DashboardPlaceholder } from "./placeholders/DashboardPlaceholder";
-import { NarrativeInputPlaceholder } from "./placeholders/NarrativeInputPlaceholder";
-import { CaseTimelinePlaceholder } from "./placeholders/CaseTimelinePlaceholder";
-import { SignalMapPlaceholder } from "./placeholders/SignalMapPlaceholder";
 
 // Registry mapping every ViewId to its full definition.
 export const VIEW_REGISTRY: Record<ViewId, ViewDefinition> = {
@@ -67,21 +64,21 @@ export const VIEW_REGISTRY: Record<ViewId, ViewDefinition> = {
   "narrative-input": {
     id: "narrative-input",
     title: "Narrative",
-    component: NarrativeInputPlaceholder,
+    component: NarrativeInputView,
     validPanes: ["left"],
-    backendDeps: ["/api/analyze", "/api/proxy"],
+    backendDeps: ["/api/timeline/assemble"],
   },
   "case-timeline": {
     id: "case-timeline",
     title: "Case Timeline",
-    component: CaseTimelinePlaceholder,
+    component: CaseTimelineView,
     validPanes: ["main", "right"],
     backendDeps: ["/api/timeline/assemble"],
   },
   "signal-map": {
     id: "signal-map",
     title: "Signal Detection",
-    component: SignalMapPlaceholder,
+    component: SignalMapView,
     validPanes: ["main", "right"],
     backendDeps: ["/api/signal/cluster"],
   },

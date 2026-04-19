@@ -5,6 +5,7 @@ import React from "react";
 import { LayoutProvider, useLayoutState } from "../layout/useLayoutState";
 import { layoutStorageKey } from "../layout/PersonaLayouts";
 
+// Wrapper providing the layout context for all tests.
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <LayoutProvider>{children}</LayoutProvider>
 );
@@ -38,7 +39,7 @@ describe("Persona layout localStorage round-trip", () => {
     expect(r2.current.layout.panes.right.viewId).toBe("case-timeline");
   });
 
-  it("saves reviewer layout when switching to reviewer", () => {
+  it("saves analyst layout when switching to reviewer persona", () => {
     const { result } = renderHook(() => useLayoutState(), { wrapper });
     act(() => {
       result.current.setPersona("reviewer");
@@ -54,10 +55,11 @@ describe("Persona layout localStorage round-trip", () => {
     // First render: switch to reviewer, mutate, unmount.
     const { result: r1, unmount } = renderHook(() => useLayoutState(), { wrapper });
     act(() => {
-      result.current.setPersona("reviewer");
+      r1.current.setPersona("reviewer");
     });
+    // Collapse the main pane as a unique marker (default is not collapsed).
     act(() => {
-      r1.current.setPaneView("left", "narrative-input");
+      r1.current.toggleCollapse("main");
     });
     unmount();
 
@@ -67,9 +69,7 @@ describe("Persona layout localStorage round-trip", () => {
       r2.current.setPersona("reviewer");
     });
     expect(r2.current.persona).toBe("reviewer");
+    // The saved reviewer layout should be restored (main pane collapsed).
+    expect(r2.current.layout.panes.main.collapsed).toBe(true);
   });
 });
-
-// Alias for the second test's outer result — avoids unused var lint warning.
-function noop() {}
-noop();
