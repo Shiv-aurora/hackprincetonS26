@@ -394,10 +394,16 @@ def _heuristic_route(all_entries: list[tuple[int, int, str, str, str]]) -> tuple
 
 # Build a realistic mock ICH E2B response referencing actual entity placeholders.
 # Call the cloud LLM through OpenAI for demo mode, with Anthropic as legacy fallback.
-def _call_llm(prompt: str, system: str) -> str:
+def _call_llm(prompt: str, system: str, requested_model: str | None = None) -> str:
     if openai_configured():
         try:
-            return call_openai(prompt, system, task="chat", max_tokens=1024)
+            return call_openai(
+                prompt,
+                system,
+                task="chat",
+                requested_model=requested_model,
+                max_tokens=1024,
+            )
         except Exception as exc:
             return f"[OpenAI error: {type(exc).__name__}: {exc}]"
 
@@ -615,7 +621,7 @@ async def api_complete(req: CompleteRequest) -> CompleteResponse:
             "(e.g. <COMPOUND_CODE_1>) in place of sensitive identifiers. "
             "Respond using the same token notation — do not invent values."
         )
-        response_raw = _call_llm(full_prompt, system_msg)
+        response_raw = _call_llm(full_prompt, system_msg, req.model)
         response_rehydrated = apply_entity_map(response_raw, entity_map)
 
     # Build audit entry and write to file + cache.

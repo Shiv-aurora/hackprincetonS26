@@ -51,6 +51,15 @@
     linear-gradient(180deg, #0d1013 0%, #0c0f12 100%);
 }
 
+.app-shell button {
+  min-height: 36px;
+}
+
+.app-shell button svg {
+  min-width: 16px;
+  min-height: 16px;
+}
+
 .app-shell::before {
   content: "";
   position: absolute;

@@ -45,6 +45,24 @@ uvicorn backend.main:app --reload --port 8000
 
 **Online mode**: set a real `OPENAI_API_KEY`. Calls the OpenAI API via `RemoteClient`.
 
+## MCP connector setup
+
+Email and Google Calendar action chips require real webhook endpoints. The backend
+does not return fake success for these two connectors.
+
+```bash
+MCP_EMAIL_URL=https://your-mcp.example.com/email
+MCP_EMAIL_TO=medical.monitor@example.com
+
+MCP_CALENDAR_URL=https://your-mcp.example.com/calendar
+MCP_CALENDAR_ID=primary
+MCP_CALENDAR_ATTENDEES=medical.monitor@example.com
+MCP_CALENDAR_TIMEZONE=America/New_York
+```
+
+The backend sends safe payloads only: action, audit reference, generated subject/title,
+event time, recipients/attendees, and a payload hash. Raw clinical content is not sent.
+
 ## Tests
 
 ```bash
@@ -94,6 +112,12 @@ curl -s -X POST http://localhost:8000/api/mcp/dispatch \
 curl -s -X POST http://localhost:8000/api/mcp/dispatch \
   -H "Content-Type: application/json" \
   -d '{"connector": "email", "action": "send", "payload": {"to": "monitor@site.org"}}' \
+  | python -m json.tool
+
+# MCP dispatch — Google Calendar (not_configured without MCP_CALENDAR_URL)
+curl -s -X POST http://localhost:8000/api/mcp/dispatch \
+  -H "Content-Type: application/json" \
+  -d '{"connector": "calendar", "action": "schedule_signal_review", "payload": {"audit_ref": "audit_123"}}' \
   | python -m json.tool
 
 # Audit log with ε budget
