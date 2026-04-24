@@ -5,10 +5,8 @@
 **HackPrinceton Spring '26**
 
 **Winner Best Overall Hack**  
-**Winner AI Research and Alignment Environments by d_model**  
-[$500 for 1st, $250 for 2nd, $125 for 3rd (Amazon gift cards)]  
-**Winner AI & Tech for Clinical Trials by Regeneron**  
-[Cash Prizes]
+**Winner- Best AI Research and Alignment Environments by d_model**  
+**Winner-AI & Tech for Clinical Trials by Regeneron**
 
 [Devpost](https://devpost.com/software/asclepius-4rthsu)
 
@@ -18,19 +16,7 @@
 
 ## How it works
 
-```mermaid
-flowchart LR
-    user["Clinical trial staff<br/>SAE narratives, protocols, CSR drafts"] --> local["Asclepius local pipeline"]
-    local --> safe["Safe Harbor stripper<br/>PHI and identifiers"]
-    safe --> router["Neural router<br/>abstract, DP, or local-only"]
-    router --> proxy["Proxy generator<br/>safe cloud prompt"]
-    proxy --> cloud["Cloud LLM<br/>Claude / GPT / Gemini"]
-    cloud --> apply["Answer applier<br/>rehydrate locally"]
-    apply --> user
-
-    router --> localOnly["Local-only answer<br/>no cloud call"]
-    localOnly --> user
-```
+<img src="docs/assets/system-dig.png" alt="Asclepius system architecture and privacy routing flow" width="900">
 
 ## Inspiration
  
