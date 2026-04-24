@@ -1,3 +1,37 @@
+<div align="center">
+
+# Asclepius
+
+**HackPrinceton Spring '26**
+
+**Winner Best Overall Hack**  
+**Winner AI Research and Alignment Environments by d_model**  
+[$500 for 1st, $250 for 2nd, $125 for 3rd (Amazon gift cards)]  
+**Winner AI & Tech for Clinical Trials by Regeneron**  
+[Cash Prizes]
+
+[Devpost](https://devpost.com/software/asclepius-4rthsu)
+
+<img src="docs/assets/hackprinceton-best-overall.jpeg" alt="Asclepius team winning Best Overall Hack at HackPrinceton Spring 2026" width="900">
+
+</div>
+
+## How it works
+
+```mermaid
+flowchart LR
+    user["Clinical trial staff<br/>SAE narratives, protocols, CSR drafts"] --> local["Asclepius local pipeline"]
+    local --> safe["Safe Harbor stripper<br/>PHI and identifiers"]
+    safe --> router["Neural router<br/>abstract, DP, or local-only"]
+    router --> proxy["Proxy generator<br/>safe cloud prompt"]
+    proxy --> cloud["Cloud LLM<br/>Claude / GPT / Gemini"]
+    cloud --> apply["Answer applier<br/>rehydrate locally"]
+    apply --> user
+
+    router --> localOnly["Local-only answer<br/>no cloud call"]
+    localOnly --> user
+```
+
 ## Inspiration
  
 Every night, medical writers at pharma companies paste confidential clinical trial documents into ChatGPT to clean up the grammar. Pharmacovigilance specialists draft SAE narratives with patient quasi-identifiers in the prompt. Regulatory affairs teams paste FDA response letters to get help with wording. 58% of front-line health staff use unapproved AI tools for work, and 44% of them admit to including identifiable patient data at least occasionally.
